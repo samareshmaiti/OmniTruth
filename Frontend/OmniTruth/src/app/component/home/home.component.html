@@ -1,0 +1,276 @@
+<div class="app-root" id="top">
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="#top" aria-label="OmniTruth home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M14 3.2 23 8.4v10.8L14 24.4 5 19.2V8.4L14 3.2Z" stroke="white" stroke-width="1.8"/><path d="m9 14.1 3.1 3.1 6.7-7" stroke="#A8F1E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="14" r="2.1" fill="white"/></svg>
+          </span>
+          <span class="brand-name">omni<span>Truth</span></span>
+        </a>
+        <nav class="nav-links" id="navLinks" [class.open]="isMenuOpen" aria-label="Main navigation">
+          <a (click)="closeMenu()" href="#platform">Platform</a>
+          <a (click)="closeMenu()" href="#solutions">Solutions</a>
+          <a (click)="closeMenu()" href="#industries">Industries</a>
+          <a (click)="closeMenu()" href="#security">Trust & security</a>
+          <a (click)="closeMenu()" href="#how-it-works">How it works</a>
+        </nav>
+        <div class="nav-actions">
+          <a class="nav-signin" routerLink="/login">Sign-in</a>
+          <a class="btn btn-primary" routerLink="/contact">Talk to our team <span aria-hidden="true">→</span></a>
+          <button class="menu-toggle" id="menuToggle" [attr.aria-label]="isMenuOpen ? 'Close navigation' : 'Open navigation'" [attr.aria-expanded]="isMenuOpen" (click)="toggleMenu()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="hero-pill"><span class="pill-dot"></span> The enterprise truth layer for AI</div>
+            <h1>Make every answer <span class="highlight">grounded</span> in evidence.</h1>
+            <p>Connect AI to the systems your business already runs. OmniTruth fetches real data, applies deterministic rules and returns evidence-backed answers your teams can trust.</p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" routerLink="/contact">Book a platform demo <span aria-hidden="true">→</span></a>
+              <a class="btn btn-outline" href="#platform">Explore the platform <span aria-hidden="true">↓</span></a>
+            </div>
+            <div class="hero-note">
+              <span><svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Tool-first verification</span>
+              <span><svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Tenant-aware access</span>
+              <span><svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Traceable evidence</span>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="Illustration of an evidence-backed shipment verification result">
+            <div class="visual-glow"></div>
+            <div class="floating-card float-a">
+              <span class="floating-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg></span>
+              <span><strong>Evidence attached</strong><small>Source-linked response</small></span>
+            </div>
+            <div class="product-window">
+              <div class="window-top">
+                <div class="window-dots"><i></i><i></i><i></i></div>
+                <span class="window-label">OMNITRUTH · VERIFICATION CONSOLE</span>
+                <span style="width:28px"></span>
+              </div>
+              <div class="window-body">
+                <div class="query-label">Ask your enterprise data</div>
+                <div class="query-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>
+                  <strong>Is shipment S-992 compliant?</strong>
+                </div>
+                <div class="verified-panel">
+                  <div class="verified-head">
+                    <div><small>Verification result</small><h3>Compliant</h3></div>
+                    <span class="status-chip"><i></i> Verified</span>
+                  </div>
+                  <div class="evidence-list">
+                    <div class="evidence-row"><span>Shipment status</span><strong>Delivered</strong></div>
+                    <div class="evidence-row"><span>Delivery window</span><strong>24 hours · Within SLA</strong></div>
+                    <div class="evidence-row"><span>Driver certificate</span><strong>Valid · Source confirmed</strong></div>
+                  </div>
+                </div>
+                <div class="pipeline" aria-label="Fetch, normalize, evaluate pipeline">
+                  <div class="pipeline-step done">01 · FETCH</div><span class="pipeline-arrow">›</span>
+                  <div class="pipeline-step done">02 · NORMALIZE</div><span class="pipeline-arrow">›</span>
+                  <div class="pipeline-step done">03 · EVALUATE</div>
+                </div>
+              </div>
+            </div>
+            <div class="floating-card float-b">
+              <span class="floating-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5m0 14h16"/><path d="m7 15 3-4 3 2 5-7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="6" r="1.5" fill="currentColor"/></svg></span>
+              <span><strong>Deterministic rules</strong><small>Java evaluates · AI explains</small></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="trust-strip" aria-label="Platform principles">
+        <div class="container trust-inner">
+          <span class="trust-label">Built around enterprise trust</span>
+          <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/></svg> Tenant-aware security</span>
+          <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round"/><circle cx="18" cy="18" r="2"/></svg> Read-only data access</span>
+          <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke-linecap="round"/></svg> Auditable operations</span>
+          <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h16v11H4zM8 8V5h8v3M8 12h8" stroke-linecap="round" stroke-linejoin="round"/></svg> MCP-native integration</span>
+        </div>
+      </section>
+
+      <section class="section" id="platform">
+        <div class="container">
+          <div class="section-heading">
+            <span class="eyebrow">The OmniTruth platform</span>
+            <h2>From fragmented enterprise data to answers you can verify.</h2>
+            <p>Bring existing systems into one governed execution layer. Let AI translate the question; let your data and deterministic business rules establish the answer.</p>
+          </div>
+          <div class="intro-grid">
+            <article class="feature-card">
+              <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="7" height="6" rx="1.5"/><rect x="14" y="4" width="7" height="6" rx="1.5"/><rect x="8.5" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 10v2.5h11V10M12 12.5V15"/></svg></div>
+              <h3>Connect the systems you have</h3>
+              <p>Integrate REST APIs, SQL databases, GraphQL endpoints and existing internal tools without rewriting core business systems.</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M7 10h10M9 15h6M11 20h2" stroke-linecap="round"/><path d="M6 3v4m12-4v4" stroke-linecap="round"/></svg></div>
+              <h3>Normalize what comes back</h3>
+              <p>Turn inconsistent source responses into predictable structures, with validation and privacy-aware masking along the way.</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h3m2 0h3M8 16h8" stroke-linecap="round"/><path d="m14 11 1.5 1.5L18 10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <h3>Evaluate rules deterministically</h3>
+              <p>Apply governed business logic in the Java execution layer, rather than asking an LLM to decide whether a fact is true.</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="m8 12 2.5 2.5L16.5 8.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 7h8" stroke-linecap="round"/></svg></div>
+              <h3>Return evidence with the answer</h3>
+              <p>Give AI clients structured Truth Cards with a result, reason and supporting evidence that can be traced to its source.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section platform-section">
+        <div class="container platform-layout">
+          <div class="platform-copy">
+            <span class="eyebrow">One governed execution layer</span>
+            <h2>AI asks. Enterprise systems answer. OmniTruth verifies.</h2>
+            <p>OmniTruth sits between AI hosts and the systems that run your business. Its MCP server exposes tools dynamically from tenant-specific blueprints and orchestrates the work needed to return a verified result.</p>
+            <div class="platform-points">
+              <div class="platform-point"><span class="point-check"><svg viewBox="0 0 16 16" fill="none"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><strong>Dynamic tool registration</strong><span>Publish new capabilities from validated blueprints.</span></div></div>
+              <div class="platform-point"><span class="point-check"><svg viewBox="0 0 16 16" fill="none"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><strong>Two execution modes</strong><span>Run deterministic logic over raw APIs or securely proxy existing tools.</span></div></div>
+              <div class="platform-point"><span class="point-check"><svg viewBox="0 0 16 16" fill="none"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><strong>Tenant-aware by design</strong><span>Resolve the right blueprint and access scope for each authorized request.</span></div></div>
+            </div>
+            <a class="btn btn-primary" href="#how-it-works">See how it works <span aria-hidden="true">→</span></a>
+          </div>
+          <div class="architecture-card">
+            <div class="architecture-top"><strong>OmniTruth execution architecture</strong><span>CONCEPTUAL VIEW</span></div>
+            <div class="arch-layer"><b>AI host / enterprise application</b><small>Question · Context · MCP client</small></div>
+            <div class="arch-connector">↓ &nbsp; MCP / JSON-RPC</div>
+            <div class="arch-layer primary"><b>OmniTruth MCP server</b><small>Tenant routing · Security guard · Dynamic tools</small></div>
+            <div class="arch-connector">↓ &nbsp; Published blueprint · Authorized request</div>
+            <div class="arch-layer"><b>Execution pipeline</b><small>Fetch → Normalize → Evaluate → Truth Card</small></div>
+            <div class="arch-data-sources">
+              <div class="arch-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="7" cy="6" r="1" fill="currentColor"/></svg>REST APIs</div>
+              <div class="arch-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>SQL data</div>
+              <div class="arch-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="m8 7 3 9m5-9-3 9M8 6h8"/></svg>Internal tools</div>
+            </div>
+            <div class="architecture-foot"><span>Policy-controlled access</span><span>Evidence-backed response</span><span>Audit-ready flow</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="solutions">
+        <div class="container">
+          <div class="section-heading">
+            <span class="eyebrow">Solutions</span>
+            <h2>Put verified intelligence to work across your operations.</h2>
+            <p>Start with a high-value question. Connect the required systems, define the business rules and make the result available through AI.</p>
+          </div>
+          <div class="usecase-shell">
+            <div class="tab-list" role="tablist" aria-label="Use case examples">
+              <button class="tab-button" role="tab" id="tab-logistics" [attr.aria-selected]="activeUseCase === 'logistics'" aria-controls="usecasePanel" (click)="selectUseCase('logistics')"><span class="tab-number">01</span><span><strong>Supply chain & compliance</strong><small>Verify delivery commitments, documents and operational rules.</small></span></button>
+              <button class="tab-button" role="tab" id="tab-operations" [attr.aria-selected]="activeUseCase === 'operations'" aria-controls="usecasePanel" (click)="selectUseCase('operations')"><span class="tab-number">02</span><span><strong>IT & infrastructure operations</strong><small>Answer system-health questions using live operational signals.</small></span></button>
+              <button class="tab-button" role="tab" id="tab-customer" [attr.aria-selected]="activeUseCase === 'customer'" aria-controls="usecasePanel" (click)="selectUseCase('customer')"><span class="tab-number">03</span><span><strong>Customer self-service</strong><small>Give customers clear answers grounded in their own records.</small></span></button>
+            </div>
+            <div class="usecase-panel" id="usecasePanel" role="tabpanel" [attr.aria-labelledby]="'tab-' + activeUseCase" aria-live="polite">
+              <div class="usecase-content">
+                <span class="usecase-kicker" id="usecaseKicker">{{ activeUseCaseContent.kicker }}</span>
+                <h3 id="usecaseTitle">{{ activeUseCaseContent.title }}</h3>
+                <p id="usecaseDescription">{{ activeUseCaseContent.description }}</p>
+                <div class="usecase-example">
+                  <small>Example question</small>
+                  <strong id="usecaseQuestion">“{{ activeUseCaseContent.question }}”</strong>
+                  <span id="usecaseResult">Result: {{ activeUseCaseContent.result }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="how-it-works">
+        <div class="container">
+          <div class="section-heading">
+            <span class="eyebrow">How it works</span>
+            <h2>A repeatable path from question to verified answer.</h2>
+            <p>Move from disconnected endpoints to governed AI capabilities through a configuration-led lifecycle.</p>
+          </div>
+          <div class="steps-grid">
+            <article class="step-card"><h3>Connect</h3><p>Register approved enterprise APIs, databases or existing internal tools using tenant-specific connector settings.</p></article>
+            <article class="step-card"><h3>Configure</h3><p>Build and validate a blueprint that defines tool inputs, data retrieval and business-rule evaluation.</p></article>
+            <article class="step-card"><h3>Execute</h3><p>The MCP engine authenticates the request, checks tenant scope and runs the Fetch → Normalize → Evaluate pipeline.</p></article>
+            <article class="step-card"><h3>Verify</h3><p>Return a structured result with a reason and supporting evidence for the AI to explain to the user.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section industry-section" id="industries">
+        <div class="container">
+          <div class="section-heading">
+            <span class="eyebrow">Industry applications</span>
+            <h2>One verification layer. Many enterprise contexts.</h2>
+            <p>Configure the tools and rules around each organisation's systems, terminology and operating requirements.</p>
+          </div>
+          <div class="industry-grid">
+            <article class="industry-card"><div class="industry-art art-logistics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z"/><circle cx="7.5" cy="19" r="2"/><circle cx="17.5" cy="19" r="2"/><path d="M5 10h7M5 13h5" stroke-linecap="round"/></svg></div><div class="industry-copy"><h3>Logistics & supply chain</h3><p>Verify shipment status, service-level commitments, certifications and operational exceptions.</p><a class="btn btn-link" routerLink="/contact">Explore use case <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h13m-5-5 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
+            <article class="industry-card"><div class="industry-art art-health"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-8-4.5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.5-8 11-8 11Z"/><path d="M7.5 12h3l1.5-3 2 6 1.5-3h1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="industry-copy"><h3>Healthcare operations</h3><p>Connect administrative and operational systems to verify workflow status and policy-defined checks.</p><a class="btn btn-link" routerLink="/contact">Explore use case <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h13m-5-5 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
+            <article class="industry-card"><div class="industry-art art-tech"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8m-4-4v4M8 9h8M8 12h4" stroke-linecap="round"/><circle cx="17" cy="12" r=".7" fill="currentColor"/></svg></div><div class="industry-copy"><h3>Technology & SaaS</h3><p>Check platform health, usage thresholds, service status and operational rules across systems.</p><a class="btn btn-link" routerLink="/contact">Explore use case <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h13m-5-5 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
+            <article class="industry-card"><div class="industry-art art-manufacturing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20V9l6 3V8l6 4V5l6 3v12H3Z"/><path d="M7 16h2m3 0h2m3 0h2" stroke-linecap="round"/><path d="M6 20v-3h3v3m6 0v-3h3v3"/></svg></div><div class="industry-copy"><h3>Manufacturing</h3><p>Bring production, quality and supply data together for auditable operational verification.</p><a class="btn btn-link" routerLink="/contact">Explore use case <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h13m-5-5 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section security-section" id="security">
+        <div class="container security-layout">
+          <div class="security-copy">
+            <span class="eyebrow eyebrow-light">Trust by design</span>
+            <h2>Governed access is part of the answer.</h2>
+            <p>Enterprise AI needs more than a useful response. OmniTruth is designed around tenant-aware identity, least-privilege access, controlled data retrieval and traceable execution.</p>
+            <p class="security-footnote">Deployment, regulatory and security requirements should be validated for each customer environment. OmniTruth does not claim third-party certification through this page.</p>
+          </div>
+          <div class="security-grid">
+            <div class="security-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg><strong>Tenant-aware authorization</strong><span>Validate identity, tenant scope and access to the requested record.</span></div>
+            <div class="security-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg><strong>Enterprise identity</strong><span>Integrate OAuth2/OIDC, JWT validation and role-based access controls.</span></div>
+            <div class="security-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m15 15 1.5 1.5L20 13" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>Read-only connectors</strong><span>Use restricted database credentials and approved data operations.</span></div>
+            <div class="security-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" stroke-linecap="round"/><path d="M17 3v3"/></svg><strong>Traceable audit events</strong><span>Record tool calls and administrative activity for customer review.</span></div>
+            <div class="security-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M7 4v6m10-6v6M5 13h14v7H5z"/><path d="m8 16 2 2 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>Privacy-aware processing</strong><span>Apply configured masking and sensitive-field filtering in normalization.</span></div>
+            <div class="security-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5"/><path d="M7 14h4m2 0h4" stroke-linecap="round"/></svg><strong>Flexible deployment</strong><span>Design for deployment inside a customer's VPC or dedicated environment.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="container">
+          <div class="section-heading">
+            <span class="eyebrow">Frequently asked questions</span>
+            <h2>Get to know OmniTruth.</h2>
+            <p>A few answers to common questions about the platform and how it fits into an enterprise environment.</p>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item"><button class="faq-question" [attr.aria-expanded]="isFaqOpen('faq1')" aria-controls="faq1" (click)="toggleFaq('faq1')">What is OmniTruth?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button><div class="faq-answer" id="faq1" [hidden]="!isFaqOpen('faq1')">OmniTruth is an enterprise AI truth engine built around the Model Context Protocol. It connects AI hosts to approved enterprise data sources, applies deterministic business rules and returns structured, evidence-backed results.</div></div>
+            <div class="faq-item"><button class="faq-question" [attr.aria-expanded]="isFaqOpen('faq2')" aria-controls="faq2" (click)="toggleFaq('faq2')">Does OmniTruth replace our existing business systems?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button><div class="faq-answer" id="faq2" [hidden]="!isFaqOpen('faq2')">No. The platform is designed to connect to existing APIs, databases and internal tools. Your systems remain the source of business data and OmniTruth provides a governed execution and verification layer.</div></div>
+            <div class="faq-item"><button class="faq-question" [attr.aria-expanded]="isFaqOpen('faq3')" aria-controls="faq3" (click)="toggleFaq('faq3')">How does OmniTruth reduce unsupported AI answers?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button><div class="faq-answer" id="faq3" [hidden]="!isFaqOpen('faq3')">Operational questions are routed through configured tools. The backend fetches source data, normalizes it and evaluates defined rules. The AI receives the structured result and supporting evidence rather than being asked to invent the underlying fact.</div></div>
+            <div class="faq-item"><button class="faq-question" [attr.aria-expanded]="isFaqOpen('faq4')" aria-controls="faq4" (click)="toggleFaq('faq4')">Can different companies use different connectors and rules?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button><div class="faq-answer" id="faq4" [hidden]="!isFaqOpen('faq4')">Yes. OmniTruth's multi-tenant model uses tenant-specific blueprints, connector configuration and access policies. The same logical tool can use a different implementation and data source for each authorized tenant.</div></div>
+            <div class="faq-item"><button class="faq-question" [attr.aria-expanded]="isFaqOpen('faq5')" aria-controls="faq5" (click)="toggleFaq('faq5')">Where does customer data live?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button><div class="faq-answer" id="faq5" [hidden]="!isFaqOpen('faq5')">OmniTruth is designed to connect to customer-controlled data sources and support deployment within a customer's VPC or dedicated environment. Exact data location, retention and logging boundaries are defined during deployment design.</div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a class="brand" href="#top">
+              <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M14 3.2 23 8.4v10.8L14 24.4 5 19.2V8.4L14 3.2Z" stroke="white" stroke-width="1.8"/><path d="m9 14.1 3.1 3.1 6.7-7" stroke="#A8F1E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="brand-name">omni<span>Truth</span></span>
+            </a>
+            <p>Enterprise AI answers, grounded in live systems, deterministic rules and traceable evidence.</p>
+          </div>
+          <div class="footer-col"><strong>Platform</strong><a href="#platform">Overview</a><a href="#how-it-works">How it works</a><a href="#security">Trust & security</a><a href="#solutions">Use cases</a></div>
+          <div class="footer-col"><strong>Solutions</strong><a href="#industries">Logistics</a><a href="#industries">Healthcare operations</a><a href="#industries">Technology</a><a href="#industries">Manufacturing</a></div>
+          <div class="footer-col"><strong>Connect</strong><a routerLink="/contact">Request a demo</a><a routerLink="/contact">Contact us</a><a href="#faq">FAQs</a><a href="#top">Back to top ↑</a></div>
+        </div>
+        <div class="footer-bottom"><span>© {{ currentYear }} OmniTruth. All rights reserved.</span><div class="footer-legal"><a href="#security">Privacy & security</a><a routerLink="/contact">Contact</a><span>Built for verifiable enterprise AI.</span></div></div>
+      </div>
+    </footer>
+  </div>
