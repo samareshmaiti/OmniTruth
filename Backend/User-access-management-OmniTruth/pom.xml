@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.omnitruth.user.management</groupId>
-	<artifactId>User-access-management-for-Omni-Truth-app</artifactId>
+	<artifactId>User-access-management-OmniTruth</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>
