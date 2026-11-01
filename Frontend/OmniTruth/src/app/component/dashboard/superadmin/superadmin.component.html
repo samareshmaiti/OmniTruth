@@ -1,0 +1,264 @@
+<div class="admin-shell">
+  <aside class="sidebar" [class.sidebar-open]="mobileNavOpen">
+    <div class="brand-lockup">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M16 3.5 27 9.7v12.6L16 28.5 5 22.3V9.7L16 3.5Z" stroke="currentColor" stroke-width="1.8"/><path d="m10 16 4 4 8-9" stroke="#9FE9DA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="brand-name">omni<span>Truth</span><small>PLATFORM CONTROL</small></div>
+    </div>
+
+    <div class="workspace-label">WORKSPACE</div>
+    <nav class="side-nav" aria-label="Super Admin navigation">
+      <button type="button" class="nav-item" [class.active]="activeView === 'overview'" (click)="setView('overview')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+        <span>Overview</span>
+      </button>
+      <button type="button" class="nav-item" [class.active]="activeView === 'tenants'" (click)="setView('tenants')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>
+        <span>Tenant management</span>
+        <span class="nav-count" *ngIf="summary.totalTenants">{{ summary.totalTenants }}</span>
+      </button>
+    </nav>
+
+    <div class="workspace-label nav-section-label">PLATFORM</div>
+    <div class="nav-item nav-item-muted" title="Available when the corresponding backend service is connected">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/><path d="M9 12h6M12 9v6"/></svg>
+      <span>Identity & SSO</span>
+      <span class="coming-soon">Later</span>
+    </div>
+    <div class="nav-item nav-item-muted" title="Connect the Audit Management service to enable this area">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
+      <span>Audit events</span>
+      <span class="coming-soon">Later</span>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-support">
+      <div class="support-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.8c-1.1 1.1-1.9 1.4-1.9 3M12 17.5h.01"/></svg></div>
+      <div><strong>Platform operations</strong><span>Manage tenant onboarding</span></div>
+    </div>
+    <div class="sidebar-footer">OMNITRUTH PLATFORM · ADMIN CONSOLE</div>
+  </aside>
+
+  <div class="main-column">
+    <header class="topbar">
+      <button type="button" class="mobile-menu" aria-label="Toggle navigation" (click)="mobileNavOpen = !mobileNavOpen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="breadcrumb"><span>Platform</span><span class="crumb-divider">/</span><strong>{{ activeView === 'overview' ? 'Overview' : 'Tenant management' }}</strong></div>
+      <div class="topbar-actions">
+        <div class="system-status" [class.status-down]="!backendHealthy" [title]="backendHealthy ? 'Backend health endpoint responded successfully' : 'Backend health has not been confirmed'">
+          <span class="status-pulse"></span>{{ backendHealthy ? 'API operational' : 'API not confirmed' }}
+        </div>
+        <div class="profile-menu">
+          <div class="avatar">{{ profileInitials }}</div>
+          <div class="profile-copy"><strong>{{ profileName }}</strong><span>Platform Super Admin</span></div>
+          <button class="logout-button" type="button" (click)="logout()" aria-label="Sign out" title="Sign out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <section class="page-heading">
+        <div>
+          <div class="eyebrow"><span></span> PLATFORM CONTROL CENTER</div>
+          <h1>{{ activeView === 'overview' ? 'Good to see you, ' + firstName : 'Tenant management' }}<span *ngIf="activeView === 'overview'">.</span></h1>
+          <p *ngIf="activeView === 'overview'">A clear view of your customers, onboarding progress and platform activity.</p>
+          <p *ngIf="activeView === 'tenants'">Register companies, track tenant lifecycle and invite the first Company Admin.</p>
+        </div>
+        <div class="heading-actions">
+          <button class="button button-quiet" type="button" (click)="refreshAll()" [disabled]="loadingTenants || loadingSummary">
+            <svg [class.spin]="loadingTenants || loadingSummary" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.7-2L20 12M4 12l2.7 5a7 7 0 0 0 11.7-2"/></svg>
+            Refresh
+          </button>
+          <button class="button button-primary" type="button" (click)="openCreateTenant()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Register tenant
+          </button>
+        </div>
+      </section>
+
+      <div class="alert alert-error" *ngIf="pageError" role="alert">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/></svg>
+        <span>{{ pageError }}</span>
+        <button type="button" (click)="pageError = ''" aria-label="Dismiss message">×</button>
+      </div>
+      <div class="toast" *ngIf="toastMessage" [class.toast-error]="toastType === 'error'" role="status">{{ toastMessage }}</div>
+
+      <ng-container *ngIf="activeView === 'overview'">
+        <section class="stats-grid" aria-label="Tenant summary">
+          <article class="stat-card stat-total">
+            <div class="stat-top"><span class="stat-label">Total tenants</span><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V7l9-4 9 4v13M3 20h18M8 10h.01M8 14h.01M16 10h.01M16 14h.01M10 20v-4h4v4"/></svg></span></div>
+            <div class="stat-value">{{ summary.totalTenants | number }}</div>
+            <div class="stat-foot">Registered in the platform</div>
+          </article>
+          <article class="stat-card stat-active">
+            <div class="stat-top"><span class="stat-label">Active tenants</span><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span></div>
+            <div class="stat-value">{{ summary.active | number }}</div>
+            <div class="stat-foot"><span class="tiny-dot green"></span> Ready for platform use</div>
+          </article>
+          <article class="stat-card stat-onboarding">
+            <div class="stat-top"><span class="stat-label">In onboarding</span><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div>
+            <div class="stat-value">{{ summary.onboarding | number }}</div>
+            <div class="stat-foot">Pending, SSO or provisioning</div>
+          </article>
+          <article class="stat-card stat-suspended">
+            <div class="stat-top"><span class="stat-label">Suspended</span><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7m0-7-7 7"/></svg></span></div>
+            <div class="stat-value">{{ summary.suspended | number }}</div>
+            <div class="stat-foot">Require administrative review</div>
+          </article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel tenants-panel">
+            <div class="panel-heading">
+              <div><div class="panel-kicker">CUSTOMER DIRECTORY</div><h2>Recently updated tenants</h2><p>Latest tenant records from the platform registry.</p></div>
+              <button type="button" class="text-action" (click)="setView('tenants')">View all tenants <span>→</span></button>
+            </div>
+            <div class="table-wrap">
+              <table class="tenant-table compact-table">
+                <thead><tr><th>COMPANY</th><th>STATUS</th><th>CREATED</th><th></th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let tenant of tenants | slice:0:5; trackBy: trackTenant">
+                    <td><div class="company-cell"><div class="company-avatar">{{ companyInitials(tenant.companyName) }}</div><div><strong>{{ tenant.companyName }}</strong><span>{{ tenant.tenantCode }}</span></div></div></td>
+                    <td><span class="status-badge" [ngClass]="statusClass(tenant.status)">{{ statusLabel(tenant.status) }}</span></td>
+                    <td class="date-cell">{{ tenant.createdAt | date:'dd MMM yyyy' }}</td>
+                    <td><button class="icon-button" type="button" (click)="viewTenant(tenant)" aria-label="View tenant details" title="View details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></td>
+                  </tr>
+                  <tr *ngIf="!loadingTenants && tenants.length === 0"><td colspan="4" class="empty-cell">No tenants found yet. Register your first tenant to get started.</td></tr>
+                  <tr *ngIf="loadingTenants"><td colspan="4" class="empty-cell">Loading tenant records…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-foot"><span>Showing up to 5 recently returned records</span><button type="button" class="text-action" (click)="setView('tenants')">Open directory →</button></div>
+          </article>
+
+          <article class="panel onboarding-panel">
+            <div class="panel-heading"><div><div class="panel-kicker">TENANT LIFECYCLE</div><h2>Onboarding overview</h2><p>Current distribution by lifecycle status.</p></div></div>
+            <div class="lifecycle-list">
+              <div class="lifecycle-row"><div class="lifecycle-name"><span class="lifecycle-dot dot-pending"></span>Pending</div><strong>{{ summary.pending }}</strong></div>
+              <div class="lifecycle-track"><span class="bar-pending" [style.width.%]="lifecyclePercent(summary.pending)"></span></div>
+              <div class="lifecycle-row"><div class="lifecycle-name"><span class="lifecycle-dot dot-sso"></span>SSO configuring</div><strong>{{ summary.ssoConfiguring }}</strong></div>
+              <div class="lifecycle-track"><span class="bar-sso" [style.width.%]="lifecyclePercent(summary.ssoConfiguring)"></span></div>
+              <div class="lifecycle-row"><div class="lifecycle-name"><span class="lifecycle-dot dot-provisioning"></span>Provisioning</div><strong>{{ summary.provisioning }}</strong></div>
+              <div class="lifecycle-track"><span class="bar-provisioning" [style.width.%]="lifecyclePercent(summary.provisioning)"></span></div>
+              <div class="lifecycle-row"><div class="lifecycle-name"><span class="lifecycle-dot dot-active"></span>Active</div><strong>{{ summary.active }}</strong></div>
+              <div class="lifecycle-track"><span class="bar-active" [style.width.%]="lifecyclePercent(summary.active)"></span></div>
+              <div class="lifecycle-row"><div class="lifecycle-name"><span class="lifecycle-dot dot-suspended"></span>Suspended / closed</div><strong>{{ summary.suspended + summary.closed }}</strong></div>
+              <div class="lifecycle-track"><span class="bar-suspended" [style.width.%]="lifecyclePercent(summary.suspended + summary.closed)"></span></div>
+            </div>
+            <button type="button" class="button button-outline button-full" (click)="setView('tenants')">Manage onboarding <span>→</span></button>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="info-card info-card-blue">
+            <div class="info-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg></div>
+            <div><strong>Platform access is protected</strong><p>This console is intended for authorized platform administrators. API access is validated by Microsoft Entra ID and Spring Security.</p></div>
+          </article>
+          <article class="info-card info-card-mint">
+            <div class="info-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h6M7 16h8"/></svg></div>
+            <div><strong>Customer onboarding</strong><p>Register a tenant, move it through SSO configuration and provisioning, then invite its first Company Admin.</p></div>
+          </article>
+        </section>
+      </ng-container>
+
+      <ng-container *ngIf="activeView === 'tenants'">
+        <section class="panel directory-panel">
+          <div class="directory-toolbar">
+            <div class="directory-title"><div class="panel-kicker">PLATFORM REGISTRY</div><h2>All tenants <span class="count-pill">{{ totalElements }}</span></h2><p>Manage company records and their onboarding lifecycle.</p></div>
+            <div class="directory-actions">
+              <div class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input type="search" [(ngModel)]="searchTerm" placeholder="Search current page…" aria-label="Search current page" /></div>
+              <select class="filter-select" [(ngModel)]="selectedStatus" (ngModelChange)="onStatusFilterChange($event)" aria-label="Filter by tenant status">
+                <option value="">All statuses</option>
+                <option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap directory-table-wrap">
+            <table class="tenant-table">
+              <thead><tr><th>COMPANY</th><th>TENANT CODE</th><th>INDUSTRY</th><th>STATUS</th><th>CREATED</th><th class="actions-heading">ACTIONS</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let tenant of filteredTenants; trackBy: trackTenant">
+                  <td><div class="company-cell"><div class="company-avatar">{{ companyInitials(tenant.companyName) }}</div><div><strong>{{ tenant.companyName }}</strong><span class="tenant-id">{{ tenant.tenantId }}</span></div></div></td>
+                  <td><span class="code-chip">{{ tenant.tenantCode }}</span></td>
+                  <td class="industry-cell">{{ tenant.industry || '—' }}</td>
+                  <td><span class="status-badge" [ngClass]="statusClass(tenant.status)">{{ statusLabel(tenant.status) }}</span></td>
+                  <td class="date-cell">{{ tenant.createdAt | date:'dd MMM yyyy' }}</td>
+                  <td><div class="row-actions">
+                    <button class="icon-button" type="button" (click)="viewTenant(tenant)" title="View details" aria-label="View details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+                    <button *ngIf="tenant.status === 'SSO_CONFIGURING'" class="invite-button" type="button" (click)="openInviteAdmin(tenant)">Invite admin</button>
+                    <select class="row-status-select" [ngModel]="tenant.status" [ngModelOptions]="{standalone:true}" (ngModelChange)="changeTenantStatus(tenant, $event)" [disabled]="allowedNextStatuses(tenant.status).length === 0" aria-label="Change tenant status">
+                      <option [ngValue]="tenant.status">Change status</option>
+                      <option *ngFor="let nextStatus of allowedNextStatuses(tenant.status)" [ngValue]="nextStatus">{{ statusLabel(nextStatus) }}</option>
+                    </select>
+                  </div></td>
+                </tr>
+                <tr *ngIf="!loadingTenants && filteredTenants.length === 0"><td colspan="6" class="empty-cell">{{ searchTerm ? 'No tenants match your search on this page.' : 'No tenants found for this filter.' }}</td></tr>
+                <tr *ngIf="loadingTenants"><td colspan="6" class="empty-cell">Loading tenant records…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="directory-footer">
+            <span>Showing {{ pageStart }}–{{ pageEnd }} of {{ totalElements }} tenants</span>
+            <div class="pagination"><button type="button" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0 || loadingTenants">Previous</button><span>Page {{ currentPage + 1 }} of {{ totalPages || 1 }}</span><button type="button" (click)="goToPage(currentPage + 1)" [disabled]="currentPage + 1 >= totalPages || loadingTenants">Next</button></div>
+          </div>
+        </section>
+        <div class="directory-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><span>Search filters the currently loaded page. The backend starter currently supports status filtering and pagination; server-side text search can be added later.</span></div>
+      </ng-container>
+
+      <footer class="page-footer"><span>© {{ currentYear }} OmniTruth</span><span>Platform administration · Secure control plane</span></footer>
+    </main>
+  </div>
+</div>
+
+<!-- Create tenant modal -->
+<div class="modal-backdrop" *ngIf="activeModal === 'create'" (click)="closeModal()">
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createTenantTitle" (click)="$event.stopPropagation()">
+    <div class="modal-header"><div><div class="panel-kicker">NEW CUSTOMER</div><h2 id="createTenantTitle">Register a tenant</h2><p>Create a company record in the OmniTruth platform.</p></div><button class="modal-close" type="button" (click)="closeModal()" aria-label="Close">×</button></div>
+    <form #createTenantForm="ngForm" (ngSubmit)="createTenant(createTenantForm)" novalidate>
+      <div class="form-grid">
+        <label class="form-field"><span>Company name <b>*</b></span><input name="companyName" [(ngModel)]="createForm.companyName" required maxlength="180" placeholder="ABC Technologies" /></label>
+        <label class="form-field"><span>Tenant code <b>*</b></span><input name="tenantCode" [(ngModel)]="createForm.tenantCode" required maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9_-]*" placeholder="abc-technologies" /><small>Letters, numbers, hyphens and underscores.</small></label>
+        <label class="form-field form-field-full"><span>Industry</span><input name="industry" [(ngModel)]="createForm.industry" maxlength="120" placeholder="Technology, logistics, healthcare…" /></label>
+      </div>
+      <div class="form-error" *ngIf="modalError">{{ modalError }}</div>
+      <div class="modal-actions"><button class="button button-quiet" type="button" (click)="closeModal()">Cancel</button><button class="button button-primary" type="submit" [disabled]="saving">{{ saving ? 'Creating…' : 'Create tenant' }}</button></div>
+      <p class="modal-footnote">New tenants are created with the <strong>PENDING</strong> status.</p>
+    </form>
+  </section>
+</div>
+
+<!-- Invite Company Admin modal -->
+<div class="modal-backdrop" *ngIf="activeModal === 'invite'" (click)="closeModal()">
+  <section class="modal-card modal-card-small" role="dialog" aria-modal="true" aria-labelledby="inviteAdminTitle" (click)="$event.stopPropagation()">
+    <div class="modal-header"><div><div class="panel-kicker">FIRST ADMINISTRATOR</div><h2 id="inviteAdminTitle">Invite Company Admin</h2><p *ngIf="inviteTenant">For {{ inviteTenant.companyName }} ({{ inviteTenant.tenantCode }}).</p></div><button class="modal-close" type="button" (click)="closeModal()" aria-label="Close">×</button></div>
+    <form #inviteForm="ngForm" (ngSubmit)="inviteCompanyAdmin(inviteForm)" novalidate>
+      <label class="form-field"><span>Company Admin work email <b>*</b></span><input type="email" name="email" [(ngModel)]="inviteEmail" required email maxlength="254" placeholder="admin@company.com" /></label>
+      <p class="form-hint">The invitation is sent through the User Management service. The tenant must be in SSO Configuring status.</p>
+      <div class="form-error" *ngIf="modalError">{{ modalError }}</div>
+      <div class="modal-actions"><button class="button button-quiet" type="button" (click)="closeModal()">Cancel</button><button class="button button-primary" type="submit" [disabled]="saving">{{ saving ? 'Sending…' : 'Send invitation' }}</button></div>
+    </form>
+  </section>
+</div>
+
+<!-- Tenant details modal -->
+<div class="modal-backdrop" *ngIf="activeModal === 'details'" (click)="closeModal()">
+  <section class="modal-card modal-card-small" role="dialog" aria-modal="true" aria-labelledby="tenantDetailsTitle" (click)="$event.stopPropagation()">
+    <div class="modal-header"><div><div class="panel-kicker">TENANT DETAILS</div><h2 id="tenantDetailsTitle">{{ detailTenant?.companyName || 'Tenant details' }}</h2><p>Platform tenant registry record.</p></div><button class="modal-close" type="button" (click)="closeModal()" aria-label="Close">×</button></div>
+    <div class="details-loading" *ngIf="loadingDetails">Loading tenant details…</div>
+    <div class="details-grid" *ngIf="detailTenant && !loadingDetails">
+      <div class="detail-item"><span>Tenant code</span><strong>{{ detailTenant.tenantCode }}</strong></div>
+      <div class="detail-item"><span>Status</span><strong><span class="status-badge" [ngClass]="statusClass(detailTenant.status)">{{ statusLabel(detailTenant.status) }}</span></strong></div>
+      <div class="detail-item"><span>Tenant ID</span><strong class="detail-id">{{ detailTenant.tenantId }}</strong></div>
+      <div class="detail-item"><span>Industry</span><strong>{{ detailTenant.industry || 'Not specified' }}</strong></div>
+      <div class="detail-item"><span>Created</span><strong>{{ detailTenant.createdAt | date:'medium' }}</strong></div>
+      <div class="detail-item"><span>Last updated</span><strong>{{ detailTenant.updatedAt | date:'medium' }}</strong></div>
+    </div>
+    <div class="modal-actions"><button class="button button-quiet" type="button" (click)="closeModal()">Close</button><button *ngIf="detailTenant?.status === 'SSO_CONFIGURING'" class="button button-primary" type="button" (click)="openInviteAdmin(detailTenant!)">Invite Company Admin</button></div>
+  </section>
+</div>

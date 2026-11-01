@@ -1,0 +1,152 @@
+<div class="contact-page" id="top">
+  <header class="contact-header">
+    <div class="contact-container header-inner">
+      <a class="brand" routerLink="/home" aria-label="OmniTruth home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 28 28" fill="none"><path d="M14 3.2 23 8.4v10.8L14 24.4 5 19.2V8.4L14 3.2Z" stroke="white" stroke-width="1.8"/><path d="m9 14.1 3.1 3.1 6.7-7" stroke="#A8F1E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="14" r="2.1" fill="white"/></svg>
+        </span>
+        <span class="brand-name">omni<span>Truth</span></span>
+      </a>
+
+      <nav class="header-links" aria-label="Contact page navigation">
+        <a [routerLink]="['/home']" fragment="platform">Platform</a>
+        <a [routerLink]="['/home']" fragment="solutions">Solutions</a>
+        <a [routerLink]="['/home']" fragment="security">Trust &amp; security</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="signin-link" routerLink="/login">Customer sign-in</a>
+        <a class="header-home" routerLink="/home">Back to home</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="contact-hero">
+      <div class="contact-container hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">Let's start a conversation</span>
+          <h1>Bring your systems into the conversation.</h1>
+          <p class="hero-lead">Tell us what your teams need to verify. We'll help you explore how OmniTruth can connect enterprise data, apply deterministic rules and return evidence-backed answers.</p>
+          <div class="hero-points">
+            <div class="hero-point"><span class="check-mark">✓</span><span>Discuss your use case and data environment</span></div>
+            <div class="hero-point"><span class="check-mark">✓</span><span>Explore MCP integrations and tenant security</span></div>
+            <div class="hero-point"><span class="check-mark">✓</span><span>Plan a practical platform walkthrough</span></div>
+          </div>
+          <div class="contact-direct">
+            <span class="direct-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span><small>Prefer email?</small><a href="mailto:hello@omnitruth.ai">hello&#64;omnitruth.ai</a></span>
+          </div>
+        </div>
+
+        <aside class="contact-aside" aria-label="What happens next">
+          <div class="aside-orbit orbit-one"></div>
+          <div class="aside-orbit orbit-two"></div>
+          <div class="aside-content">
+            <span class="aside-label">A useful first conversation</span>
+            <h2>Start with the question you need answered.</h2>
+            <p>Whether you're verifying an operational rule, connecting existing tools or designing tenant-aware AI access, share a little context and we'll take it from there.</p>
+            <div class="aside-divider"></div>
+            <div class="aside-step"><span>01</span><div><strong>Tell us about your use case</strong><small>Share the systems and business questions involved.</small></div></div>
+            <div class="aside-step"><span>02</span><div><strong>Explore the right approach</strong><small>Discuss connectors, rules, identity and deployment.</small></div></div>
+            <div class="aside-step"><span>03</span><div><strong>See the platform</strong><small>Arrange a walkthrough around your requirements.</small></div></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="contact-main-section">
+      <div class="contact-container contact-layout">
+        <div class="contact-context">
+          <span class="eyebrow">Contact the OmniTruth team</span>
+          <h2>What would you like to make verifiable?</h2>
+          <p>Use the form to request a platform demo or ask about an enterprise integration. The more context you provide, the more useful the first conversation can be.</p>
+
+          <div class="context-card">
+            <div class="context-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div><strong>Designed for enterprise environments</strong><span>Discuss tenant-aware access, SSO, read-only connectors and deployment boundaries.</span></div>
+          </div>
+          <div class="context-card">
+            <div class="context-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5" stroke-linecap="round"/><path d="m14 16 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div><strong>Evidence-backed AI workflows</strong><span>Explore how source data and deterministic business rules can support reliable answers.</span></div>
+          </div>
+        </div>
+
+        <div class="contact-form-card">
+          <div class="form-heading" *ngIf="!submitted">
+            <span class="form-kicker">CONTACT FORM</span>
+            <h2>Talk to our team</h2>
+            <p>Complete the details below and we'll have the context for a conversation.</p>
+          </div>
+
+          <form *ngIf="!submitted" #contactForm="ngForm" (ngSubmit)="submitContact(contactForm)" novalidate>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="fullName">Full name <span>*</span></label>
+                <input id="fullName" name="fullName" type="text" [(ngModel)]="formData.fullName" #fullName="ngModel" autocomplete="name" placeholder="Your name" required />
+                <small class="field-error" *ngIf="fullName.invalid && (fullName.touched || contactForm.submitted)">Please enter your name.</small>
+              </div>
+              <div class="form-field">
+                <label for="jobTitle">Job title</label>
+                <input id="jobTitle" name="jobTitle" type="text" [(ngModel)]="formData.jobTitle" autocomplete="organization-title" placeholder="Your role" />
+              </div>
+              <div class="form-field">
+                <label for="workEmail">Work email <span>*</span></label>
+                <input id="workEmail" name="workEmail" type="email" [(ngModel)]="formData.workEmail" #workEmail="ngModel" autocomplete="email" placeholder="you@company.com" required email />
+                <small class="field-error" *ngIf="workEmail.invalid && (workEmail.touched || contactForm.submitted)">Enter a valid work email.</small>
+              </div>
+              <div class="form-field">
+                <label for="company">Company <span>*</span></label>
+                <input id="company" name="company" type="text" [(ngModel)]="formData.company" #company="ngModel" autocomplete="organization" placeholder="Company name" required />
+                <small class="field-error" *ngIf="company.invalid && (company.touched || contactForm.submitted)">Please enter your company.</small>
+              </div>
+              <div class="form-field full-width">
+                <label for="topic">What would you like to discuss? <span>*</span></label>
+                <select id="topic" name="topic" [(ngModel)]="formData.topic" #topic="ngModel" required>
+                  <option value="" disabled>Select a topic</option>
+                  <option value="Platform demo">Platform demo</option>
+                  <option value="MCP integration">MCP integration</option>
+                  <option value="Enterprise data connectors">Enterprise data connectors</option>
+                  <option value="Security and deployment">Security and deployment</option>
+                  <option value="Partnership">Partnership</option>
+                  <option value="Other">Other</option>
+                </select>
+                <small class="field-error" *ngIf="topic.invalid && (topic.touched || contactForm.submitted)">Please select a topic.</small>
+              </div>
+              <div class="form-field full-width">
+                <label for="message">Tell us a little more</label>
+                <textarea id="message" name="message" [(ngModel)]="formData.message" rows="5" placeholder="What business question or workflow would you like to verify?"></textarea>
+              </div>
+            </div>
+            <button class="submit-button" type="submit" [disabled]="isSubmitting">
+              {{ isSubmitting ? 'Sending...' : 'Send enquiry' }}
+              <span aria-hidden="true">→</span>
+            </button>
+            <p class="form-note">Your information will be used to respond to this enquiry. Connect this form to your backend or CRM before production.</p>
+          </form>
+
+          <div class="success-panel" *ngIf="submitted" role="status" aria-live="polite">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <span class="form-kicker">THANK YOU</span>
+            <h2>Your enquiry is ready.</h2>
+            <p>This frontend prototype has recorded the form state locally. Connect the submit handler to your contact API or CRM to deliver enquiries to your team.</p>
+            <button class="submit-button secondary" type="button" (click)="startNewEnquiry()">Send another enquiry</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="contact-footer">
+    <div class="contact-container footer-inner">
+      <a class="brand" routerLink="/home" aria-label="OmniTruth home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M14 3.2 23 8.4v10.8L14 24.4 5 19.2V8.4L14 3.2Z" stroke="white" stroke-width="1.8"/><path d="m9 14.1 3.1 3.1 6.7-7" stroke="#A8F1E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="brand-name">omni<span>Truth</span></span>
+      </a>
+      <span>© {{ currentYear }} OmniTruth. All rights reserved.</span>
+      <a routerLink="/home">Back to OmniTruth home ↑</a>
+    </div>
+  </footer>
+</div>
