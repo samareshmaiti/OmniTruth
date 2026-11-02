@@ -41,76 +41,37 @@ public class SecurityConfig {
     // 1. CORS configuration
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
-
         CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.setAllowedOrigins(
-                List.of("http://localhost:4200")
-        );
-
-        configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        );
-
-        configuration.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept",
-                        "Origin",
-                        "X-Requested-With"
-                )
-        );
-
-        configuration.setExposedHeaders(
-                List.of("Authorization")
-        );
+        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("Authorization"));
 
         // Enable only if your Angular requests use credentials/cookies.
         configuration.setAllowCredentials(false);
-
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            JwtAuthenticationConverter jwtAuthenticationConverter
-    ) throws Exception {
-
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+        System.out.println("Inside security filter chain");
         return http
-
                 // Enable CORS using the configuration above.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Bearer-token API; no browser-cookie authentication.
                 .csrf(csrf -> csrf.disable())
-
-                // Stateless API.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // Endpoint authorization.
                 .authorizeHttpRequests(auth -> auth
-
-                        // Public monitoring endpoints.
                         .requestMatchers(
                                 "/actuator/health",
                                 "/actuator/info",
                                 "/swagger-ui.html"
                         ).permitAll()
-
-                        // Only platform Super Admins.
                         .requestMatchers("/api/platform/v1/**")
                         .hasRole("PLATFORM_SUPER_ADMIN")
-
-                        // Everything else requires authentication.
                         .anyRequest().authenticated()
                 )
 
@@ -151,13 +112,7 @@ public class SecurityConfig {
             );
         };
 
-        decoder.setJwtValidator(
-                new DelegatingOAuth2TokenValidator<>(
-                        issuerValidator,
-                        audienceValidator
-                )
-        );
-
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(issuerValidator, audienceValidator));
         return decoder;
     }
 
@@ -187,7 +142,10 @@ public class SecurityConfig {
         return roles.stream()
                 .filter(role -> role != null && !role.isBlank())
                 .map(String::trim)
-                .filter("PLATFORM_SUPER_ADMIN"::equals)
+                .filter(role ->
+                        "PLATFORM_SUPER_ADMIN".equals(role)
+                                || "PLATFORM_SUPER_ADMIN_USER".equals(role)
+                )
                 .map(role -> new SimpleGrantedAuthority(
                         "ROLE_PLATFORM_SUPER_ADMIN"
                 ))

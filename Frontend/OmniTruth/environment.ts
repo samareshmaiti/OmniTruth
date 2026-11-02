@@ -3,18 +3,26 @@ export const environment = {
   production: false,
 
   azure: {
-    tenantId: 'eb39d9b2-f8de-495c-9ec7-3efcf7b4d9e5',
-    clientId: '7747b071-0307-47ab-a4dc-5f4bae362a6d',
+    tenantId: '30556ea2-dc45-48a0-8d9e-ad2b64c195dc',
+    clientId: '89855a3d-f952-46be-8034-677c6cef5ba7',
+
     authority:
-      'https://login.microsoftonline.com/eb39d9b2-f8de-495c-9ec7-3efcf7b4d9e5'
+      'https://login.microsoftonline.com/30556ea2-dc45-48a0-8d9e-ad2b64c195dc',
+
+    organizationsAuthority:
+      'https://login.microsoftonline.com/organizations',
+
+    redirectUri: 'http://localhost:4200/login'
   },
 
   platformApi: {
-    clientId: '85e5f08a-019b-46bf-87e9-26d8148235ad',
+    clientId: '0309a226-b400-4a88-a901-d09639b64f42',
     baseUrl: 'http://localhost:8081',
-
-    // Must exactly match the scope exposed by your API registration.
     scope:
-      'api://85e5f08a-019b-46bf-87e9-26d8148235ad/access_as_user'
+      'api://0309a226-b400-4a88-a901-d09639b64f42/access_as_user'
+  },
+
+  tenantManagement: {
+    baseUrl: 'http://localhost:8082'
   }
 };

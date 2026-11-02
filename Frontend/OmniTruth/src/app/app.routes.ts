@@ -10,7 +10,7 @@ import { NotfoundComponent } from './component/omniDtls/notfound/notfound.compon
 
 export const routes: Routes = [
 
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
 
   { path: 'home', component: HomeComponent },
 

@@ -223,8 +223,17 @@
     <form #createTenantForm="ngForm" (ngSubmit)="createTenant(createTenantForm)" novalidate>
       <div class="form-grid">
         <label class="form-field"><span>Company name <b>*</b></span><input name="companyName" [(ngModel)]="createForm.companyName" required maxlength="180" placeholder="ABC Technologies" /></label>
-        <label class="form-field"><span>Tenant code <b>*</b></span><input name="tenantCode" [(ngModel)]="createForm.tenantCode" required maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9_-]*" placeholder="abc-technologies" /><small>Letters, numbers, hyphens and underscores.</small></label>
-        <label class="form-field form-field-full"><span>Industry</span><input name="industry" [(ngModel)]="createForm.industry" maxlength="120" placeholder="Technology, logistics, healthcare…" /></label>
+        <label class="form-field">
+          <span>Tenant code <b>*</b></span>
+          <input
+            name="tenantCode"
+            [(ngModel)]="createForm.tenantCode"
+            required
+            maxlength="80"
+            placeholder="abc-technologies"
+          />
+          <small>Letters, numbers, hyphens and underscores.</small>
+        </label>        <label class="form-field form-field-full"><span>Industry</span><input name="industry" [(ngModel)]="createForm.industry" maxlength="120" placeholder="Technology, logistics, healthcare…" /></label>
       </div>
       <div class="form-error" *ngIf="modalError">{{ modalError }}</div>
       <div class="modal-actions"><button class="button button-quiet" type="button" (click)="closeModal()">Cancel</button><button class="button button-primary" type="submit" [disabled]="saving">{{ saving ? 'Creating…' : 'Create tenant' }}</button></div>

@@ -21,11 +21,13 @@ import com.omnitruth.platformadmin.tenant.repository.TenantRepository;
 @Service
 public class TenantService {
     private final TenantRepository tenantRepository;
-    private final AuditManagementClient auditClient;
+   // private final AuditManagementClient auditClient;
+    private PlatformOnboardingService platformOnboardingService;
 
-    public TenantService(TenantRepository tenantRepository, AuditManagementClient auditClient) {
+    public TenantService(TenantRepository tenantRepository,PlatformOnboardingService platformOnboardingService) {
         this.tenantRepository = tenantRepository;
-        this.auditClient = auditClient;
+       // this.auditClient = auditClient;
+        this.platformOnboardingService =platformOnboardingService;
     }
 
     @Transactional
@@ -37,8 +39,13 @@ public class TenantService {
         Tenant tenant = Tenant.create(code, request.companyName().trim(),
                 StringUtils.hasText(request.industry()) ? request.industry().trim() : null, actorSubject);
         Tenant saved = tenantRepository.save(tenant);
-        auditClient.record(actorSubject, "TENANT_REGISTERED", saved.getTenantId(),
-                Map.of("tenantCode", saved.getTenantCode(), "companyName", saved.getCompanyName()));
+//        platformOnboardingService.inviteFirstCompanyAdmin(
+//                saved.getId(),
+//                request.companyAdminEmail().trim(),
+//                actorSubject
+//        );)
+//        auditClient.record(actorSubject, "TENANT_REGISTERED", saved.getTenantId(),
+//                Map.of("tenantCode", saved.getTenantCode(), "companyName", saved.getCompanyName()));
         return TenantResponse.from(saved);
     }
 
@@ -60,8 +67,8 @@ public class TenantService {
         TenantStatus previous = tenant.getStatus();
         tenant.changeStatus(nextStatus);
         Tenant saved = tenantRepository.save(tenant);
-        auditClient.record(actorSubject, "TENANT_STATUS_CHANGED", tenantId,
-                Map.of("previousStatus", previous.name(), "newStatus", saved.getStatus().name()));
+//        auditClient.record(actorSubject, "TENANT_STATUS_CHANGED", tenantId,
+//                Map.of("previousStatus", previous.name(), "newStatus", saved.getStatus().name()));
         return TenantResponse.from(saved);
     }
 

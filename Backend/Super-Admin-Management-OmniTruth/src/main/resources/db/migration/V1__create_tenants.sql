@@ -4,6 +4,7 @@ CREATE TABLE tenants (
     company_name VARCHAR(180) NOT NULL,
     industry VARCHAR(120),
     status VARCHAR(32) NOT NULL,
+    admin_email VARCHAR(180),
     created_by VARCHAR(200) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL
