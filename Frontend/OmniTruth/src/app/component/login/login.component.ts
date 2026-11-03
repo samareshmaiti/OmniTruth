@@ -2,13 +2,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
+
 import {
   ActivatedRoute,
   Router,
   RouterLink
 } from '@angular/router';
 
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpHeaders
+} from '@angular/common/http';
 
 import { MsalService } from '@azure/msal-angular';
 
@@ -21,6 +25,11 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../../environment';
+
+
+// --------------------------------------------------
+// INTERFACES
+// --------------------------------------------------
 
 interface PlatformApiTokenClaims {
   aud?: string;
@@ -54,18 +63,44 @@ interface LoginState {
   tenantSlug?: string;
 }
 
+interface LoginOptions {
+  loginHint?: string;
+  prompt?: 'select_account' | 'login' | 'none';
+}
+
+
+// Signals that MSAL is starting an interactive token redirect.
+// This is not an authentication failure.
+class RedirectInProgressError extends Error {
+  constructor() {
+    super('Redirecting to Microsoft to complete authentication.');
+    this.name = 'RedirectInProgressError';
+  }
+}
+
+
+// --------------------------------------------------
+// COMPONENT
+// --------------------------------------------------
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink
+  ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
 
   email = '';
+
   statusMessage = '';
   errorMessage = '';
+
   isLoading = false;
 
   readonly currentYear = new Date().getFullYear();
@@ -77,80 +112,144 @@ export class LoginComponent implements OnInit {
     private msalService: MsalService
   ) {}
 
+
+  // --------------------------------------------------
+  // INITIALIZATION / MICROSOFT REDIRECT
+  // --------------------------------------------------
+
   ngOnInit(): void {
     this.handleMicrosoftRedirect();
   }
+
 
   private handleMicrosoftRedirect(): void {
 
     this.isLoading = true;
 
-    this.msalService.handleRedirectObservable().subscribe({
+    this.msalService.handleRedirectObservable({
+      navigateToLoginRequestUrl: false
+    }).subscribe({
 
       next: async (result: AuthenticationResult | null) => {
 
-        const account: AccountInfo | null =
-          result?.account ??
-          this.msalService.instance.getActiveAccount() ??
-          this.msalService.instance.getAllAccounts()[0] ??
-          null;
+        /*
+         * Normal visit to /login:
+         * No redirect result exists.
+         * Do not automatically reuse a cached account
+         * and classify it as a Super Admin.
+         */
+        if (!result) {
+          this.isLoading = false;
+          return;
+        }
+
+        const account: AccountInfo | null = result.account ?? null;
 
         if (!account) {
           this.isLoading = false;
+          this.errorMessage =
+            'Microsoft account information is missing.';
           return;
         }
 
         this.msalService.instance.setActiveAccount(account);
 
-        const loginState = this.getLoginState(result);
-
         try {
+
+          const loginState = this.getLoginState(result);
+
           if (loginState.flow === 'platform') {
-            await this.handlePlatformLogin(account);
-          } else {
+
+            await this.handlePlatformLogin(
+              account,
+              loginState
+            );
+
+          } else if (
+            loginState.flow === 'customer' &&
+            loginState.tenantSlug
+          ) {
+
             await this.handleCustomerLogin(
               account,
-              loginState.tenantSlug!
+              loginState.tenantSlug,
+              loginState
+            );
+
+          } else {
+
+            throw new Error(
+              'Unable to determine the Microsoft login flow.'
             );
           }
+
         } catch (error) {
+
+          if (error instanceof RedirectInProgressError) {
+            return;
+          }
+
           console.error('Login processing failed:', error);
+
           this.isLoading = false;
+          this.statusMessage = '';
+
           this.errorMessage =
-            'Unable to complete login. Please contact your administrator.';
+            error instanceof Error
+              ? error.message
+              : 'Unable to complete login. Please contact your administrator.';
         }
       },
 
       error: (error) => {
+
         console.error('Microsoft redirect error:', error);
+
         this.isLoading = false;
+        this.statusMessage = '';
+
         this.errorMessage =
           'Microsoft sign-in could not be completed.';
       }
     });
   }
 
+
+  // --------------------------------------------------
+  // RECOVER LOGIN FLOW FROM OAUTH STATE
+  // --------------------------------------------------
+
   private getLoginState(
-    result: AuthenticationResult | null
+    result: AuthenticationResult
   ): LoginState {
 
-    // First, recover the flow from the OAuth redirect state.
-    if (result?.state) {
+    if (result.state) {
+
       try {
+
         const state = JSON.parse(result.state) as LoginState;
 
+        if (state.flow === 'platform') {
+          return state;
+        }
+
         if (
-          state.flow === 'platform' ||
-          (state.flow === 'customer' && state.tenantSlug)
+          state.flow === 'customer' &&
+          typeof state.tenantSlug === 'string' &&
+          state.tenantSlug.trim()
         ) {
           return state;
         }
+
       } catch {
-        console.warn('Could not parse application login state.');
+        console.warn('Unable to parse Microsoft login state.');
       }
     }
 
-    // Fallback for a direct customer login route.
+    /*
+     * Optional fallback for customer-specific login routes.
+     * Do not default an unknown flow to platform login.
+     */
     const tenantSlug =
       this.route.snapshot.paramMap.get('tenantSlug');
 
@@ -161,8 +260,11 @@ export class LoginComponent implements OnInit {
       };
     }
 
-    return { flow: 'platform' };
+    throw new Error(
+      'The login state is missing or invalid. Please restart sign-in.'
+    );
   }
+
 
   // --------------------------------------------------
   // PLATFORM SUPER ADMIN LOGIN
@@ -175,34 +277,55 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    this.startLogin({
-      flow: 'platform'
-    }, environment.azure.authority);
+    this.startLogin(
+      { flow: 'platform' },
+
+      // Vendor tenant authority.
+      environment.azure.authority,
+
+      {
+        loginHint: this.email.trim(),
+        prompt: 'select_account'
+      }
+    );
   }
 
+
   private async handlePlatformLogin(
-    account: AccountInfo
+    account: AccountInfo,
+    loginState: LoginState
   ): Promise<void> {
 
-    if (account.tenantId !== environment.azure.tenantId) {
-      throw new Error('Invalid OmniTruth administrator tenant.');
+    this.statusMessage = 'Verifying administrator account...';
+
+    // Verify vendor tenant.
+    if (
+      account.tenantId?.toLowerCase() !==
+      environment.azure.tenantId.toLowerCase()
+    ) {
+      throw new Error(
+        'Invalid OmniTruth administrator tenant.'
+      );
     }
 
+    // Verify Super Admin application role.
     const claims = account.idTokenClaims as {
       roles?: string[];
     } | undefined;
 
     const roles = claims?.roles ?? [];
 
-    console.log('Platform user roles:', roles);
-
     if (!roles.includes('PLATFORM_SUPER_ADMIN')) {
-      throw new Error('Platform Super Admin role not assigned.');
+      throw new Error(
+        'Platform Super Admin role is not assigned.'
+      );
     }
 
+    // Obtain Platform API access token.
     const apiToken = await this.acquireApiToken(
       account,
-      environment.azure.authority
+      environment.azure.authority,
+      loginState
     );
 
     const apiClaims =
@@ -214,13 +337,16 @@ export class LoginComponent implements OnInit {
     );
 
     this.isLoading = false;
-    this.statusMessage = 'Welcome to OmniTruth Super Admin Portal';
+
+    this.statusMessage =
+      'Welcome to OmniTruth Super Admin Portal';
 
     await this.router.navigate(['/superAdmin']);
   }
 
+
   // --------------------------------------------------
-  // CUSTOMER LOGIN
+  // EXISTING CUSTOMER LOGIN
   // --------------------------------------------------
 
   onCustomerContinue(
@@ -233,15 +359,18 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    const normalizedSlug = tenantSlug.trim().toLowerCase();
+    const normalizedSlug =
+      tenantSlug.trim().toLowerCase();
 
     if (!normalizedSlug) {
-      this.errorMessage = 'Customer organisation is required.';
+      this.errorMessage =
+        'Customer organisation is required.';
       return;
     }
 
-    this.resolveTenantAndStartLogin(normalizedSlug);
+    void this.resolveTenantAndStartLogin(normalizedSlug);
   }
+
 
   private async resolveTenantAndStartLogin(
     tenantSlug: string
@@ -256,24 +385,49 @@ export class LoginComponent implements OnInit {
       const tenant = await firstValueFrom(
         this.http.get<TenantResolutionResponse>(
           `${environment.tenantManagement.baseUrl}` +
-          `/api/public/v1/tenants/resolve/${encodeURIComponent(tenantSlug)}`
+          `/api/public/v1/tenants/resolve/` +
+          `${encodeURIComponent(tenantSlug)}`
         )
       );
 
       if (tenant.status !== 'ACTIVE') {
-        throw new Error('This organisation is not active.');
+        throw new Error(
+          'This organisation is not active.'
+        );
       }
 
       if (!tenant.entraTenantId) {
-        throw new Error('SSO is not configured for this organisation.');
+        throw new Error(
+          'SSO is not configured for this organisation.'
+        );
       }
+
+      // A customer must not resolve to the vendor directory.
+      if (
+        tenant.entraTenantId.toLowerCase() ===
+        environment.azure.tenantId.toLowerCase()
+      ) {
+        throw new Error(
+          'Customer Entra mapping incorrectly points to the OmniTruth vendor directory.'
+        );
+      }
+
+      const customerAuthority =
+        `https://login.microsoftonline.com/${tenant.entraTenantId}`;
 
       this.startLogin(
         {
           flow: 'customer',
           tenantSlug: tenant.tenantSlug
         },
-        `https://login.microsoftonline.com/${tenant.entraTenantId}`
+
+        // Existing customer: use its already-mapped tenant.
+        customerAuthority,
+
+        {
+          // Do not force the invitation email or personal Gmail.
+          prompt: 'select_account'
+        }
       );
 
     } catch (error) {
@@ -282,33 +436,42 @@ export class LoginComponent implements OnInit {
 
       this.isLoading = false;
       this.statusMessage = '';
+
       this.errorMessage =
-        'Unable to find an active organisation with configured SSO.';
+        error instanceof Error
+          ? error.message
+          : 'Unable to find an active organisation with configured SSO.';
     }
   }
 
+
   private async handleCustomerLogin(
     account: AccountInfo,
-    tenantSlug: string
+    tenantSlug: string,
+    loginState: LoginState
   ): Promise<void> {
 
-    this.statusMessage = 'Verifying your organisation...';
+    this.statusMessage =
+      'Verifying your organisation...';
 
-    // Resolve the trusted tenant configuration again.
+    // Resolve trusted tenant information again.
     const tenant = await firstValueFrom(
       this.http.get<TenantResolutionResponse>(
         `${environment.tenantManagement.baseUrl}` +
-        `/api/public/v1/tenants/resolve/${encodeURIComponent(tenantSlug)}`
+        `/api/public/v1/tenants/resolve/` +
+        `${encodeURIComponent(tenantSlug)}`
       )
     );
 
     if (tenant.status !== 'ACTIVE') {
-      throw new Error('Customer organisation is not active.');
+      throw new Error(
+        'Customer organisation is not active.'
+      );
     }
 
-    // Never accept a different Entra tenant after sign-in.
+    // Verify Entra tenant ID from authenticated account.
     if (
-      account.tenantId.toLowerCase() !==
+      account.tenantId?.toLowerCase() !==
       tenant.entraTenantId.toLowerCase()
     ) {
       throw new Error(
@@ -319,9 +482,11 @@ export class LoginComponent implements OnInit {
     const customerAuthority =
       `https://login.microsoftonline.com/${tenant.entraTenantId}`;
 
+    // Obtain access token for the customer tenant.
     const apiToken = await this.acquireApiToken(
       account,
-      customerAuthority
+      customerAuthority,
+      loginState
     );
 
     const tokenClaims =
@@ -332,11 +497,14 @@ export class LoginComponent implements OnInit {
       tenant.entraTenantId
     );
 
-    this.statusMessage = 'Loading your organisation profile...';
+    this.statusMessage =
+      'Loading your organisation profile...';
 
+    // Existing platform context endpoint.
     const context = await firstValueFrom(
       this.http.get<UserContextResponse>(
-        `${environment.platformApi.baseUrl}/api/platform/v1/me/context`,
+        `${environment.platformApi.baseUrl}` +
+        `/api/platform/v1/me/context`,
         {
           headers: new HttpHeaders({
             Authorization: `Bearer ${apiToken}`
@@ -345,17 +513,25 @@ export class LoginComponent implements OnInit {
       )
     );
 
-    // Verify that the backend resolved the expected customer.
-    if (context.tenantSlug !== tenant.tenantSlug) {
-      throw new Error('Organisation context verification failed.');
+    // Verify backend tenant resolution.
+    if (
+      context.tenantSlug?.toLowerCase() !==
+      tenant.tenantSlug.toLowerCase()
+    ) {
+      throw new Error(
+        'Organisation context verification failed.'
+      );
     }
 
-    if (!context.roles?.length) {
-      throw new Error('No application roles are assigned.');
+    if (!context.roles || context.roles.length === 0) {
+      throw new Error(
+        'No application roles are assigned.'
+      );
     }
 
     this.isLoading = false;
 
+    // Company Admin.
     if (context.roles.includes('COMPANY_ADMIN')) {
 
       this.statusMessage =
@@ -370,7 +546,7 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    // Add other customer roles here when implemented.
+    // Employee.
     if (context.roles.includes('COMPANY_USER')) {
 
       this.statusMessage =
@@ -390,26 +566,30 @@ export class LoginComponent implements OnInit {
     );
   }
 
+
   // --------------------------------------------------
   // COMMON MICROSOFT LOGIN
   // --------------------------------------------------
 
   private startLogin(
     state: LoginState,
-    authority: string
+    authority: string,
+    options: LoginOptions = {}
   ): void {
 
     this.isLoading = true;
-    this.statusMessage = 'Redirecting to Microsoft...';
+    this.statusMessage =
+      'Redirecting to Microsoft...';
+
     this.errorMessage = '';
 
     const request: RedirectRequest = {
 
+      // Authority is explicitly selected for each flow.
       authority,
 
-      redirectUri: environment.azure.redirectUri,
-
-      loginHint: this.email.trim() || undefined,
+      redirectUri:
+        environment.azure.redirectUri,
 
       scopes: [
         'openid',
@@ -417,64 +597,110 @@ export class LoginComponent implements OnInit {
         environment.platformApi.scope
       ],
 
-      state: JSON.stringify(state)
+      // Preserve the original flow after redirect.
+      state: JSON.stringify(state),
+
+      prompt: options.prompt ?? 'select_account',
+
+      ...(options.loginHint
+        ? { loginHint: options.loginHint }
+        : {})
     };
 
     this.msalService.loginRedirect(request).subscribe({
 
       error: (error) => {
-        console.error('Microsoft login failed:', error);
+
+        console.error(
+          'Microsoft login failed:',
+          error
+        );
 
         this.isLoading = false;
         this.statusMessage = '';
+
         this.errorMessage =
           'Unable to start Microsoft sign-in. Please try again.';
       }
     });
   }
 
+
   // --------------------------------------------------
-  // API ACCESS TOKEN
+  // PLATFORM API ACCESS TOKEN
   // --------------------------------------------------
 
   private async acquireApiToken(
     account: AccountInfo,
-    authority: string
+    authority: string,
+    loginState: LoginState
   ): Promise<string> {
 
     try {
 
       const result = await firstValueFrom(
         this.msalService.acquireTokenSilent({
+
           account,
           authority,
-          scopes: [environment.platformApi.scope]
+
+          scopes: [
+            environment.platformApi.scope
+          ]
         })
       );
 
       return result.accessToken;
 
-    } catch (error) {
+    } catch (silentError) {
 
-      console.error('Silent token acquisition failed:', error);
-
-      // Do not silently continue without an API access token.
-      // Start a fresh authorization flow for this account.
-      await firstValueFrom(
-        this.msalService.acquireTokenRedirect({
-          account,
-          authority,
-          redirectUri: environment.azure.redirectUri,
-          scopes: [environment.platformApi.scope]
-        })
+      console.warn(
+        'Silent API token acquisition failed. Starting interactive token acquisition.',
+        silentError
       );
 
-      throw error;
+      const request: RedirectRequest = {
+
+        account,
+        authority,
+
+        redirectUri:
+          environment.azure.redirectUri,
+
+        scopes: [
+          environment.platformApi.scope
+        ],
+
+        // Important: preserve platform/customer flow.
+        state: JSON.stringify(loginState),
+
+        prompt: 'select_account'
+      };
+
+      try {
+
+        await firstValueFrom(
+          this.msalService.acquireTokenRedirect(request)
+        );
+
+      } catch (redirectError) {
+
+        console.error(
+          'API token redirect failed:',
+          redirectError
+        );
+
+        throw redirectError;
+      }
+
+      // The browser should now be redirecting to Microsoft.
+      throw new RedirectInProgressError();
     }
   }
 
+
   // --------------------------------------------------
-  // TOKEN DIAGNOSTICS
+  // JWT CLAIM DECODING
   // --------------------------------------------------
 
   private decodeAccessTokenClaims(
@@ -484,7 +710,9 @@ export class LoginComponent implements OnInit {
     const parts = accessToken.split('.');
 
     if (parts.length !== 3) {
-      throw new Error('Invalid JWT format.');
+      throw new Error(
+        'Invalid access token format.'
+      );
     }
 
     const base64 = parts[1]
@@ -508,32 +736,52 @@ export class LoginComponent implements OnInit {
     ) as PlatformApiTokenClaims;
   }
 
+
+  // --------------------------------------------------
+  // FRONTEND TOKEN CHECKS
+  // --------------------------------------------------
+
   private validatePlatformApiClaims(
     claims: PlatformApiTokenClaims,
     expectedTenantId: string
   ): void {
 
-    if (claims.aud !== environment.platformApi.clientId) {
-      throw new Error('Unexpected Platform API audience.');
+    if (
+      claims.aud !== environment.platformApi.clientId
+    ) {
+      throw new Error(
+        'Unexpected Platform API audience.'
+      );
     }
 
     if (
       claims.tid?.toLowerCase() !==
       expectedTenantId.toLowerCase()
     ) {
-      throw new Error('Unexpected Entra tenant in access token.');
+      throw new Error(
+        'Unexpected Entra tenant in access token.'
+      );
     }
 
     if (
       !claims.scp?.split(' ').includes('access_as_user')
     ) {
-      throw new Error('Platform API delegated scope is missing.');
+      throw new Error(
+        'Platform API delegated scope is missing.'
+      );
     }
 
-    if (claims.exp && claims.exp * 1000 <= Date.now()) {
-      throw new Error('Platform API access token has expired.');
+    if (
+      claims.exp &&
+      claims.exp * 1000 <= Date.now()
+    ) {
+      throw new Error(
+        'Platform API access token has expired.'
+      );
     }
 
+    // Diagnostics only. Backend must independently validate
+    // token signature, issuer, audience, expiry and tenant.
     console.log('Platform API token diagnostics:', {
       aud: claims.aud,
       tid: claims.tid,
@@ -543,8 +791,14 @@ export class LoginComponent implements OnInit {
     });
   }
 
+
+  // --------------------------------------------------
+  // UI HELPERS
+  // --------------------------------------------------
+
   clearStatus(): void {
     this.statusMessage = '';
     this.errorMessage = '';
   }
+
 }

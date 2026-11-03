@@ -1,1 +1,162 @@
-<p>tenant works!</p>
+<div class="tenant-shell">
+  <aside class="sidebar">
+    <a class="brand" href="/home" aria-label="OmniTruth home">
+      <span class="brand-mark">O</span>
+      <span>omni<strong>Truth</strong><small>TENANT WORKSPACE</small></span>
+    </a>
+
+    <div class="nav-caption">WORKSPACE</div>
+    <nav aria-label="Tenant administration">
+      <button type="button" [class.active]="activeView === 'overview'" (click)="setView('overview')">▦ <span>Dashboard</span></button>
+      <button type="button" [class.active]="activeView === 'profile'" (click)="setView('profile')">◎ <span>Company profile</span></button>
+      <button type="button" [class.active]="activeView === 'clients'" (click)="setView('clients')">♙ <span>Clients</span><b>{{ clients.length }}</b></button>
+      <button type="button" [class.active]="activeView === 'endpoints'" (click)="setView('endpoints')">⌘ <span>API endpoints</span><b>{{ endpoints.length }}</b></button>
+      <button type="button" [class.active]="activeView === 'tools'" (click)="setView('tools')">✣ <span>Tool calling</span><b>{{ tools.length }}</b></button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="secure-note"><span>●</span><div><strong>Tenant-isolated</strong><small>Access is scoped to your organisation.</small></div></div>
+      <button class="logout" type="button" (click)="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><div class="eyebrow">COMPANY ADMINISTRATION / {{ tenantSlug || 'TENANT' }}</div><h1>{{ pageTitle }}</h1></div>
+      <div class="profile"><span class="avatar">{{ companyName.charAt(0) || 'O' }}</span><span><strong>{{ companyName }}</strong><small>{{ profileEmail }}</small></span></div>
+    </header>
+
+    <div class="alerts" *ngIf="error || notice">
+      <div class="alert error" *ngIf="error" role="alert">{{ error }} <button type="button" (click)="error = ''">×</button></div>
+      <div class="alert success" *ngIf="notice" role="status">{{ notice }} <button type="button" (click)="notice = ''">×</button></div>
+    </div>
+
+    <div class="loading" *ngIf="loading">Loading your secure tenant workspace…</div>
+
+    <ng-container *ngIf="!loading">
+      <section *ngIf="activeView === 'overview'">
+        <div class="welcome">
+          <div><span class="eyebrow">YOUR ORGANISATION</span><h2>Welcome, {{ companyName }}</h2><p>Manage your clients, connected APIs and AI tool definitions from one place.</p></div>
+          <span class="status-pill">{{ dashboard?.tenant?.status || 'ACTIVE' }}</span>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric"><span class="metric-icon">♙</span><small>CLIENTS</small><strong>{{ dashboard?.totalClients ?? 0 }}</strong><span>{{ dashboard?.activeClients ?? 0 }} active</span></article>
+          <article class="metric"><span class="metric-icon">⌘</span><small>API ENDPOINTS</small><strong>{{ dashboard?.totalApiEndpoints ?? 0 }}</strong><span>{{ dashboard?.enabledApiEndpoints ?? 0 }} enabled</span></article>
+          <article class="metric"><span class="metric-icon">✣</span><small>TOOL DEFINITIONS</small><strong>{{ dashboard?.totalTools ?? 0 }}</strong><span>{{ dashboard?.enabledTools ?? 0 }} enabled</span></article>
+        </div>
+
+        <div class="section-heading"><div><span class="eyebrow">QUICK ACCESS</span><h2>Workspace management</h2></div></div>
+        <div class="quick-grid">
+          <button type="button" class="quick-card" (click)="setView('profile')"><span>◎</span><strong>Update company profile</strong><small>Maintain your organisation name and industry.</small><b>Company profile →</b></button>
+          <button type="button" class="quick-card" (click)="startNewClient()"><span>♙</span><strong>Add a client</strong><small>Create or update your client directory.</small><b>Manage clients →</b></button>
+          <button type="button" class="quick-card" (click)="startNewEndpoint()"><span>⌘</span><strong>Configure an API</strong><small>Register an endpoint and its authentication reference.</small><b>Manage endpoints →</b></button>
+          <button type="button" class="quick-card" (click)="startNewTool()"><span>✣</span><strong>Define a tool</strong><small>Connect an AI tool definition to an API endpoint.</small><b>Manage tools →</b></button>
+        </div>
+        <p class="footnote">API and tool records are configuration only. This release does not execute outbound API calls or invoke tools.</p>
+      </section>
+
+
+      <section *ngIf="activeView === 'profile'">
+        <div class="section-heading">
+          <div><span class="eyebrow">ORGANISATION SETTINGS</span><h2>Company profile</h2><p>Review and update the company information registered during onboarding.</p></div>
+          <span class="status-pill" [class.inactive]="tenantProfile?.status !== 'ACTIVE'">{{ tenantProfile?.status || '—' }}</span>
+        </div>
+
+        <div class="loading" *ngIf="profileLoading">Loading company profile…</div>
+
+        <div class="editor profile-editor" *ngIf="!profileLoading && tenantProfile">
+          <div class="profile-readonly-grid">
+            <div><small>TENANT CODE</small><strong>{{ tenantProfile.tenantCode }}</strong></div>
+            <div><small>ACCOUNT STATUS</small><strong>{{ tenantProfile.status }}</strong></div>
+            <div><small>CREATED</small><strong>{{ tenantProfile.createdAt | date:'mediumDate' }}</strong></div>
+          </div>
+          <div class="form-grid">
+            <label>Company name *
+              <input [(ngModel)]="profileForm.companyName" name="profileCompanyName" maxlength="180" required placeholder="Your registered company name">
+            </label>
+            <label>Industry
+              <input [(ngModel)]="profileForm.industry" name="profileIndustry" maxlength="120" placeholder="e.g. Information Technology">
+            </label>
+          </div>
+          <p class="footnote">Tenant code, account status and onboarding details are managed by OmniTruth and cannot be changed here.</p>
+          <div class="form-actions">
+            <button type="button" class="secondary" (click)="loadProfile()" [disabled]="saving || profileLoading">Reset changes</button>
+            <button type="button" class="primary" (click)="saveProfile()" [disabled]="saving || !profileForm.companyName.trim()">{{ saving ? 'Saving…' : 'Save company profile' }}</button>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="!profileLoading && !tenantProfile">Company profile is not available.</div>
+      </section>
+
+      <section *ngIf="activeView === 'clients'">
+        <div class="section-heading"><div><span class="eyebrow">CUSTOMER DIRECTORY</span><h2>Clients</h2><p>Add and maintain the client records belonging to your organisation.</p></div><button class="primary" type="button" (click)="startNewClient()">＋ Add client</button></div>
+        <div class="editor" *ngIf="!editingClientId || clientForm.clientName">
+          <h3>{{ editingClientId ? 'Update client' : 'New client' }}</h3>
+          <div class="form-grid">
+            <label>Client name<input [(ngModel)]="clientForm.clientName" maxlength="180" placeholder="Client or organisation name"></label>
+            <label>Contact email<input [(ngModel)]="clientForm.contactEmail" type="email" maxlength="254" placeholder="contact@example.com"></label>
+            <label>External reference<input [(ngModel)]="clientForm.externalReference" maxlength="120" placeholder="CRM or internal reference"></label>
+            <label>Status<select [(ngModel)]="clientForm.status"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label>
+            <label class="wide">Notes<textarea [(ngModel)]="clientForm.notes" maxlength="2000" rows="2"></textarea></label>
+          </div>
+          <div class="form-actions"><button type="button" class="secondary" (click)="editingClientId = null; clientForm = emptyClient()">Clear</button><button type="button" class="primary" [disabled]="saving || !clientForm.clientName.trim()" (click)="saveClient()">{{ saving ? 'Saving…' : 'Save client' }}</button></div>
+        </div>
+        <div class="table-card">
+          <table><thead><tr><th>CLIENT</th><th>CONTACT</th><th>REFERENCE</th><th>STATUS</th><th></th></tr></thead>
+            <tbody><tr *ngFor="let client of clients"><td><strong>{{ client.clientName }}</strong><small>{{ client.notes || '—' }}</small></td><td>{{ client.contactEmail || '—' }}</td><td>{{ client.externalReference || '—' }}</td><td><span class="status-pill" [class.inactive]="client.status === 'INACTIVE'">{{ client.status }}</span></td><td><button class="text-button" type="button" (click)="editClient(client)">Edit</button></td></tr>
+              <tr *ngIf="clients.length === 0"><td colspan="5" class="empty">No clients added yet.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section *ngIf="activeView === 'endpoints'">
+        <div class="section-heading"><div><span class="eyebrow">INTEGRATIONS</span><h2>API endpoints</h2><p>Configure the external APIs available to your tenant.</p></div><button class="primary" type="button" (click)="startNewEndpoint()">＋ Add endpoint</button></div>
+        <div class="editor">
+          <h3>{{ editingEndpointId ? 'Update API endpoint' : 'New API endpoint' }}</h3>
+          <div class="form-grid">
+            <label>Endpoint name<input [(ngModel)]="endpointForm.endpointName" placeholder="Customer lookup API"></label>
+            <label>Base URL<input [(ngModel)]="endpointForm.baseUrl" type="url" placeholder="https://api.example.com/v1/customers"></label>
+            <label>HTTP method<select [(ngModel)]="endpointForm.httpMethod"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select></label>
+            <label>Authentication<select [(ngModel)]="endpointForm.authType"><option value="NONE">None</option><option value="BEARER_SECRET_REFERENCE">Bearer token (secret reference)</option><option value="API_KEY_SECRET_REFERENCE">API key (secret reference)</option><option value="OAUTH2_CLIENT_CREDENTIALS_REFERENCE">OAuth client credentials (secret reference)</option></select></label>
+            <label class="wide">Key Vault secret reference<input [(ngModel)]="endpointForm.secretReference" placeholder="kv://vault-name/secrets/api-credential"></label>
+            <label class="wide">Description<textarea [(ngModel)]="endpointForm.description" rows="2"></textarea></label>
+          </div>
+          <label class="check"><input type="checkbox" [(ngModel)]="endpointForm.enabled"> Endpoint enabled</label>
+          <div class="form-actions"><button type="button" class="secondary" (click)="editingEndpointId = null; endpointForm = emptyEndpoint()">Clear</button><button type="button" class="primary" [disabled]="saving || !endpointForm.endpointName.trim() || !endpointForm.baseUrl.trim()" (click)="saveEndpoint()">{{ saving ? 'Saving…' : 'Save endpoint' }}</button></div>
+        </div>
+        <div class="table-card">
+          <table><thead><tr><th>ENDPOINT</th><th>METHOD</th><th>AUTHENTICATION</th><th>STATUS</th><th></th></tr></thead>
+            <tbody><tr *ngFor="let endpoint of endpoints"><td><strong>{{ endpoint.endpointName }}</strong><small>{{ endpoint.baseUrl }}</small></td><td>{{ endpoint.httpMethod }}</td><td>{{ endpoint.authType }}</td><td><span class="status-pill" [class.inactive]="!endpoint.enabled">{{ endpoint.enabled ? 'ENABLED' : 'DISABLED' }}</span></td><td><button class="text-button" type="button" (click)="editEndpoint(endpoint)">Edit</button></td></tr>
+              <tr *ngIf="endpoints.length === 0"><td colspan="5" class="empty">No API endpoints configured yet.</td></tr></tbody>
+          </table>
+        </div>
+        <p class="footnote">Credentials are not stored here. Use secret references backed by Azure Key Vault or another approved secret manager. Do not paste API keys into this form.</p>
+      </section>
+
+      <section *ngIf="activeView === 'tools'">
+        <div class="section-heading"><div><span class="eyebrow">AI INTEGRATION</span><h2>Tool calling</h2><p>Define tools and their input schemas, then associate them with a configured API endpoint.</p></div><button class="primary" type="button" (click)="startNewTool()">＋ Add tool</button></div>
+        <div class="editor">
+          <h3>{{ editingToolId ? 'Update tool definition' : 'New tool definition' }}</h3>
+          <div class="form-grid">
+            <label>Tool name<input [(ngModel)]="toolForm.toolName" placeholder="lookup_customer"></label>
+            <label>API endpoint<select [(ngModel)]="toolForm.endpointId"><option value="">Select an endpoint</option><option *ngFor="let endpoint of endpoints" [value]="endpoint.endpointId" [disabled]="!endpoint.enabled">{{ endpoint.endpointName }} ({{ endpoint.httpMethod }})</option></select></label>
+            <label class="wide">Description<textarea [(ngModel)]="toolForm.description" rows="2" placeholder="What the AI tool is allowed to do"></textarea></label>
+            <label class="wide">Input schema (JSON)<textarea class="code-input" [(ngModel)]="toolForm.inputSchema" rows="8" spellcheck="false"></textarea></label>
+          </div>
+          <label class="check"><input type="checkbox" [(ngModel)]="toolForm.enabled"> Tool enabled</label>
+          <div class="form-actions"><button type="button" class="secondary" (click)="editingToolId = null; toolForm = emptyTool()">Clear</button><button type="button" class="primary" [disabled]="saving || !toolForm.toolName.trim() || !toolForm.endpointId" (click)="saveTool()">{{ saving ? 'Saving…' : 'Save tool' }}</button></div>
+        </div>
+        <div class="table-card">
+          <table><thead><tr><th>TOOL</th><th>DESCRIPTION</th><th>ENDPOINT</th><th>STATUS</th><th></th></tr></thead>
+            <tbody><tr *ngFor="let tool of tools"><td><strong>{{ tool.toolName }}</strong></td><td>{{ tool.description }}</td><td>{{ endpointName(tool.endpointId) }}</td><td><span class="status-pill" [class.inactive]="!tool.enabled">{{ tool.enabled ? 'ENABLED' : 'DISABLED' }}</span></td><td><button class="text-button" type="button" (click)="editTool(tool)">Edit</button></td></tr>
+              <tr *ngIf="tools.length === 0"><td colspan="5" class="empty">No tool definitions configured yet.</td></tr></tbody>
+          </table>
+        </div>
+        <p class="footnote">This configures tool metadata only. Execution, permission checks, outbound request allowlisting, timeouts and response validation must be implemented in a separate tool runtime before enabling live calls.</p>
+      </section>
+    </ng-container>
+
+    <footer>© {{ currentYear }} OmniTruth <span>Company administration · Tenant-scoped workspace</span></footer>
+  </main>
+</div>

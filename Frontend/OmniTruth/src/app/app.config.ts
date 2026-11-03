@@ -25,11 +25,15 @@ import {
 import { routes } from './app.routes';
 import { environment } from '../../environment';
 
+
 export function MSALInstanceFactory(): IPublicClientApplication {
   return new PublicClientApplication({
     auth: {
       clientId: environment.azure.clientId,
-      authority: environment.azure.authority,
+
+      // Default for customer organizational accounts
+      authority: environment.azure.organizationsAuthority,
+
       redirectUri: 'http://localhost:4200/login',
       postLogoutRedirectUri: 'http://localhost:4200/home'
     },
@@ -39,6 +43,7 @@ export function MSALInstanceFactory(): IPublicClientApplication {
   });
 }
 
+
 export function MSALInitializerFactory(
   instance: IPublicClientApplication
 ) {
@@ -47,7 +52,11 @@ export function MSALInitializerFactory(
 
 export function MSALGuardConfigFactory() {
   return {
-    interactionType: InteractionType.Redirect
+    interactionType: InteractionType.Redirect,
+    authRequest: {
+      authority: environment.azure.organizationsAuthority,
+      scopes: ['openid', 'profile']
+    }
   };
 }
 

@@ -23,6 +23,15 @@ export const environment = {
   },
 
   tenantManagement: {
-    baseUrl: 'http://localhost:8082'
+    baseUrl: 'http://localhost:8082',
+    scope: 'api://YOUR-TENANT-MANAGEMENT-API-CLIENT-ID/access_as_user'
+  },
+
+  // User Management owns employee records, tenant memberships and roles.
+  // This sample uses the existing shared API audience. If User Management
+  // has a separate Entra API registration, replace scope with that API scope.
+  userManagement: {
+    baseUrl: 'http://localhost:8083',
+    scope: 'api://0309a226-b400-4a88-a901-d09639b64f42/access_as_user'
   }
 };

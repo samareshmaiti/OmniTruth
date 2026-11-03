@@ -1,0 +1,57 @@
+<div class="auth-page">
+  <header class="auth-header">
+    <a routerLink="/home" class="brand">omni<span>Truth</span></a>
+    <span class="secure-label">MICROSOFT ENTRA AUTHORIZATION</span>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card">
+      <div class="microsoft-mark" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+
+      <p class="eyebrow">CONNECT YOUR ORGANISATION</p>
+      <h1>Authorize OmniTruth</h1>
+      <p class="muted">
+        Sign in with your organisation's Microsoft work account. OmniTruth will
+        verify your identity and connect it to the company invitation you accepted.
+      </p>
+
+      <div class="identity-note">
+        <strong>What happens next?</strong>
+        <ol>
+          <li>Microsoft authenticates your work account.</li>
+          <li>OmniTruth verifies the organisation identity.</li>
+          <li>User Management creates your Company Admin membership through the onboarding event.</li>
+          <li>Your existing company dashboard opens when membership is active.</li>
+        </ol>
+      </div>
+
+      <p class="account-line" *ngIf="signedInEmail">Microsoft account: <strong>{{ signedInEmail }}</strong></p>
+
+      <div class="notice" *ngIf="notice" role="status" aria-live="polite">{{ notice }}</div>
+      <div class="error" *ngIf="error" role="alert">{{ error }}</div>
+
+      <button class="primary-button" type="button"
+              [disabled]="authorizing || loading || !invitationToken"
+              (click)="startMicrosoftAuthorization()">
+        <span class="ms-mini" aria-hidden="true">M</span>
+        {{ authorizing ? 'Redirecting…' : 'Authorize with Microsoft SSO' }}
+      </button>
+
+      <button *ngIf="error && !invitationToken" class="secondary-button"
+              type="button" routerLink="/login">
+        Go to sign in
+      </button>
+
+      <button *ngIf="error && !invitationToken && signedInEmail" class="secondary-button"
+              type="button" [disabled]="provisioning" (click)="checkProvisioningAgain()">
+        {{ provisioning ? 'Checking…' : 'Check membership status again' }}
+      </button>
+
+      <p class="footnote">
+        OmniTruth does not receive your Microsoft password. Authentication is handled by Microsoft Entra ID.
+      </p>
+    </section>
+  </main>
+</div>

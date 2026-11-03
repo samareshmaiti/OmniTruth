@@ -1,0 +1,53 @@
+<div class="invite-page">
+  <header class="invite-header">
+    <a routerLink="/home" class="brand" aria-label="OmniTruth home">omni<span>Truth</span></a>
+    <span class="secure-label">SECURE COMPANY ONBOARDING</span>
+  </header>
+
+  <main class="invite-main">
+    <section class="invite-card">
+      <div class="brand-mark" aria-hidden="true">✓</div>
+
+      <ng-container *ngIf="loading">
+        <h1>Checking your invitation</h1>
+        <p class="muted">Please wait while we verify the invitation link.</p>
+        <div class="loader" aria-label="Loading"></div>
+      </ng-container>
+
+      <ng-container *ngIf="!loading && invitation">
+        <p class="eyebrow">YOU'RE INVITED TO OMNITRUTH</p>
+        <h1>Join {{ invitation.companyName }}</h1>
+        <p class="muted">You have been invited to access your organisation's OmniTruth workspace.</p>
+
+        <dl class="details">
+          <div><dt>Organisation</dt><dd>{{ invitation.companyName }}</dd></div>
+          <div><dt>Tenant code</dt><dd>{{ invitation.tenantCode }}</dd></div>
+          <div><dt>Invited email</dt><dd>{{ invitation.invitedEmail }}</dd></div>
+          <div><dt>Requested role</dt><dd>{{ invitation.requestedRole }}</dd></div>
+          <div><dt>Expires</dt><dd>{{ invitation.expiresAt | date:'medium' }}</dd></div>
+        </dl>
+
+        <div class="notice" *ngIf="notice" role="status">{{ notice }}</div>
+        <div class="error" *ngIf="error" role="alert">{{ error }}</div>
+
+        <button *ngIf="canAccept" class="primary-button" type="button"
+                [disabled]="accepting" (click)="acceptInvitation()">
+          {{ accepting ? 'Accepting invitation…' : 'Accept invitation' }}
+          <span aria-hidden="true">→</span>
+        </button>
+
+        <button *ngIf="canContinue" class="primary-button" type="button"
+                (click)="continueToSso()">
+          Continue to Microsoft SSO <span aria-hidden="true">→</span>
+        </button>
+
+        <a *ngIf="invitation.status === 'ACCEPTED'" class="secondary-link" routerLink="/login">
+          Go to sign in
+        </a>
+      </ng-container>
+
+      <div class="error" *ngIf="!loading && error && !invitation" role="alert">{{ error }}</div>
+      <p class="footer-note">Only accept an invitation intended for you. Your organisation's Microsoft sign-in will verify your work identity.</p>
+    </section>
+  </main>
+</div>

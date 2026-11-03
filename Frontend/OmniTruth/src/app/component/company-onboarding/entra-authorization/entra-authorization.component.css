@@ -1,0 +1,22 @@
+:host { display: block; min-height: 100vh; color: #172436; background: #f4f7fa; font-family: Inter, Arial, sans-serif; }
+.auth-page { min-height: 100vh; display: flex; flex-direction: column; }
+.auth-header { min-height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(20px, 6vw, 84px); background: #fff; border-bottom: 1px solid #e7edf2; }
+.brand { color: #152a43; font-size: 23px; font-weight: 800; letter-spacing: -.8px; text-decoration: none; }
+.brand span { color: #159b8a; }
+.secure-label, .eyebrow { color: #62758a; font-size: 10px; font-weight: 800; letter-spacing: 1.4px; }
+.auth-main { flex: 1; display: grid; place-items: center; padding: 42px 18px; }
+.auth-card { width: min(100%, 590px); padding: clamp(26px, 5vw, 48px); background: #fff; border: 1px solid #e5ecf1; border-radius: 22px; box-shadow: 0 20px 60px rgba(25, 49, 75, .08); }
+.microsoft-mark { display: grid; grid-template-columns: 16px 16px; grid-template-rows: 16px 16px; gap: 3px; margin-bottom: 26px; }
+.microsoft-mark span:nth-child(1) { background: #f25022; }.microsoft-mark span:nth-child(2) { background: #7fba00; }.microsoft-mark span:nth-child(3) { background: #00a4ef; }.microsoft-mark span:nth-child(4) { background: #ffb900; }
+h1 { margin: 8px 0 10px; color: #172b43; font-size: clamp(28px, 4vw, 37px); line-height: 1.15; }
+.muted { color: #65778a; line-height: 1.65; }
+.identity-note { margin: 26px 0; padding: 18px 20px; color: #334a60; background: #f7f9fb; border: 1px solid #e8eef3; border-radius: 13px; font-size: 13px; }
+.identity-note ol { margin: 12px 0 0; padding-left: 20px; }.identity-note li { padding: 5px 0; line-height: 1.5; }
+.account-line { color: #617387; font-size: 12px; }.account-line strong { color: #263c52; }
+.primary-button, .secondary-button { width: 100%; min-height: 51px; display: flex; align-items: center; justify-content: center; gap: 11px; margin-top: 13px; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.primary-button { color: #fff; background: #116f72; border: 0; }.primary-button:hover:not(:disabled) { background: #0d5e62; }.primary-button:disabled { opacity: .6; cursor: wait; }
+.secondary-button { color: #116f72; background: #fff; border: 1px solid #b9d4d4; }
+.ms-mini { width: 19px; height: 19px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg,#f25022 0 25%,#7fba00 25% 50%,#00a4ef 50% 75%,#ffb900 75%); border-radius: 3px; font-size: 11px; }
+.notice, .error { margin: 16px 0; padding: 13px 15px; border-radius: 10px; font-size: 13px; line-height: 1.5; }.notice { color: #14624f; background: #e9f8f2; border: 1px solid #c8ecdc; }.error { color: #9b2c35; background: #fff0f0; border: 1px solid #f5d2d4; }
+.footnote { margin: 25px 0 0; color: #7a8998; font-size: 11px; line-height: 1.6; text-align: center; }
+@media (max-width: 520px) { .auth-header { align-items: flex-start; flex-direction: column; justify-content: center; gap: 5px; padding-block: 15px; } }
