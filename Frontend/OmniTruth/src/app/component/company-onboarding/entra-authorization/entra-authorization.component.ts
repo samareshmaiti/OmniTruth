@@ -104,7 +104,7 @@ export class EntraAuthorizationComponent implements OnInit {
     this.notice = 'Checking whether your tenant membership is active…';
 
     try {
-      const context = await this.tenantContext.waitForCompanyAdminAccess(10, 2000);
+      const context = await this.tenantContext.waitForCompanyAdminAccess(5, 1000);
       await this.openWorkspace(context);
     } catch (error: any) {
       this.error = error?.message ?? 'Your membership is not active yet.';
@@ -131,11 +131,11 @@ export class EntraAuthorizationComponent implements OnInit {
         account
       );
 
-      // Tenant Management has accepted the Entra identity and published the
-      // provisioning event. User Management now creates the membership.
+      // Tenant Management has validated tid/oid, linked the Entra tenant,
+      // and created the active COMPANY_ADMIN record before returning.
       this.onboarding.clearPendingInvitationToken();
       this.invitationToken = '';
-      this.notice = completion.message || 'Identity verified. Waiting for your workspace to become ready…';
+      this.notice = completion.message || 'Identity verified. Checking your OmniTruth dashboard access…';
 
       await this.checkAndOpenWorkspace();
     } catch (error: any) {
@@ -150,15 +150,11 @@ export class EntraAuthorizationComponent implements OnInit {
     this.provisioning = true;
 
     try {
-      const context = await this.tenantContext.waitForCompanyAdminAccess(45, 2000);
+      const context = await this.tenantContext.waitForCompanyAdminAccess(5, 1000);
       await this.openWorkspace(context);
     } catch (error: any) {
-      this.error = error?.message ?? 'Your account is still being provisioned.';
-      if (String(error?.message ?? '').includes('does not have the Company Admin role')) {
-        this.notice = 'Your membership is active, but the expected Company Admin role was not returned by User Management.';
-      } else {
-        this.notice = 'Your Microsoft identity was verified. User Management may still be processing the Kafka onboarding event. You can check again below.';
-      }
+      this.error = error?.message ?? 'Your Company Admin dashboard access could not be verified.';
+      this.notice = 'Tenant Management completed the invitation step, but the dashboard access check did not succeed. You can retry the check or contact your OmniTruth administrator.';
     } finally {
       this.provisioning = false;
     }

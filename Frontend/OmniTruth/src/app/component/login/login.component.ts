@@ -11,6 +11,7 @@ import {
 
 import {
   HttpClient,
+  HttpErrorResponse,
   HttpHeaders
 } from '@angular/common/http';
 
@@ -50,17 +51,25 @@ interface TenantResolutionResponse {
   status: string;
 }
 
-interface UserContextResponse {
-  tenantId: string;
-  tenantSlug: string;
-  companyName: string;
-  roles: string[];
-  landingPath?: string;
+interface TenantDashboardResponse {
+  tenant: {
+    tenantId: string;
+    tenantCode: string;
+    companyName: string;
+    status: string;
+  };
+  totalClients: number;
+  activeClients: number;
+  totalApiEndpoints: number;
+  enabledApiEndpoints: number;
+  totalTools: number;
+  enabledTools: number;
 }
 
 interface LoginState {
-  flow: 'platform' | 'customer';
+  flow: 'auto' | 'platform' | 'customer';
   tenantSlug?: string;
+  email?: string;
 }
 
 interface LoginOptions {
@@ -172,9 +181,24 @@ export class LoginComponent implements OnInit {
 
             await this.handleCustomerLogin(
               account,
-              loginState.tenantSlug,
-              loginState
+              loginState,
+              loginState.tenantSlug
             );
+
+          } else if (loginState.flow === 'auto') {
+
+            // Route by the authenticated Entra tenant, not by email text.
+            if (
+              account.tenantId?.toLowerCase() ===
+              environment.azure.tenantId.toLowerCase()
+            ) {
+              await this.handlePlatformLogin(account, {
+                ...loginState,
+                flow: 'platform'
+              });
+            } else {
+              await this.handleCustomerLogin(account, loginState);
+            }
 
           } else {
 
@@ -234,6 +258,14 @@ export class LoginComponent implements OnInit {
         }
 
         if (
+          state.flow === 'auto' &&
+          typeof state.email === 'string' &&
+          state.email.trim()
+        ) {
+          return state;
+        }
+
+        if (
           state.flow === 'customer' &&
           typeof state.tenantSlug === 'string' &&
           state.tenantSlug.trim()
@@ -262,6 +294,40 @@ export class LoginComponent implements OnInit {
 
     throw new Error(
       'The login state is missing or invalid. Please restart sign-in.'
+    );
+  }
+
+
+  // --------------------------------------------------
+  // COMMON LOGIN ENTRY
+  // --------------------------------------------------
+
+  onCommonContinue(loginForm: NgForm): void {
+
+    if (loginForm.invalid) {
+      loginForm.control.markAllAsTouched();
+      return;
+    }
+
+    const normalizedEmail = this.email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      this.errorMessage = 'Enter your work email address.';
+      return;
+    }
+
+    // Microsoft uses the email as a home-realm discovery hint.
+    // The authenticated Entra tenant ID decides the application flow.
+    this.startLogin(
+      {
+        flow: 'auto',
+        email: normalizedEmail
+      },
+      environment.azure.organizationsAuthority,
+      {
+        loginHint: normalizedEmail,
+        prompt: 'select_account'
+      }
     );
   }
 
@@ -445,125 +511,133 @@ export class LoginComponent implements OnInit {
   }
 
 
-  private async handleCustomerLogin(
-    account: AccountInfo,
-    tenantSlug: string,
-    loginState: LoginState
-  ): Promise<void> {
+  private async handleCustomerLogin(account: AccountInfo, loginState: LoginState, tenantSlug?: string): Promise<void> {
 
-    this.statusMessage =
-      'Verifying your organisation...';
+    this.statusMessage = 'Verifying your organisation...';
 
-    // Resolve trusted tenant information again.
-    const tenant = await firstValueFrom(
-      this.http.get<TenantResolutionResponse>(
-        `${environment.tenantManagement.baseUrl}` +
-        `/api/public/v1/tenants/resolve/` +
-        `${encodeURIComponent(tenantSlug)}`
-      )
-    );
+    const entraTenantId = account.tenantId?.trim();
 
-    if (tenant.status !== 'ACTIVE') {
+    if (!entraTenantId) {
       throw new Error(
-        'Customer organisation is not active.'
+        'The Microsoft account does not contain an organisation tenant ID.'
       );
     }
 
-    // Verify Entra tenant ID from authenticated account.
+    // A vendor-directory identity must pass the existing Super Admin flow.
     if (
-      account.tenantId?.toLowerCase() !==
-      tenant.entraTenantId.toLowerCase()
+      entraTenantId.toLowerCase() ===
+      environment.azure.tenantId.toLowerCase()
     ) {
       throw new Error(
-        'You signed in with an account from the wrong organisation.'
+        'The OmniTruth vendor account could not be verified as a Super Admin.'
       );
+    }
+
+    let resolvedTenant: TenantResolutionResponse | null = null;
+
+    // Keep support for the existing tenant-slug customer sign-in route.
+    if (tenantSlug) {
+      resolvedTenant = await firstValueFrom(
+        this.http.get<TenantResolutionResponse>(
+          `${environment.tenantManagement.baseUrl}` +
+          `/api/public/v1/tenants/resolve/` +
+          `${encodeURIComponent(tenantSlug)}`
+        )
+      );
+
+      if (resolvedTenant.status !== 'ACTIVE') {
+        throw new Error(
+          'Customer organisation is not active.'
+        );
+      }
+
+      if (
+        resolvedTenant.entraTenantId.toLowerCase() !==
+        entraTenantId.toLowerCase()
+      ) {
+        throw new Error(
+          'You signed in with an account from the wrong organisation.'
+        );
+      }
     }
 
     const customerAuthority =
-      `https://login.microsoftonline.com/${tenant.entraTenantId}`;
+      `https://login.microsoftonline.com/${entraTenantId}`;
 
-    // Obtain access token for the customer tenant.
+    // Obtain the API token from the authenticated customer's Entra tenant.
     const apiToken = await this.acquireApiToken(
       account,
       customerAuthority,
       loginState
     );
 
-    const tokenClaims =
-      this.decodeAccessTokenClaims(apiToken);
+    const tokenClaims = this.decodeAccessTokenClaims(apiToken);
 
     this.validatePlatformApiClaims(
       tokenClaims,
-      tenant.entraTenantId
+      entraTenantId
     );
 
-    this.statusMessage =
-      'Loading your organisation profile...';
+    this.statusMessage = 'Verifying your OmniTruth workspace access...';
 
-    // Existing platform context endpoint.
-    const context = await firstValueFrom(
-      this.http.get<UserContextResponse>(
-        `${environment.platformApi.baseUrl}` +
-        `/api/platform/v1/me/context`,
-        {
-          headers: new HttpHeaders({
-            Authorization: `Bearer ${apiToken}`
-          })
-        }
-      )
-    );
+    // Tenant Management exposes a Company Admin-protected dashboard endpoint.
+    // It resolves the tenant from the validated Entra tid and oid claims.
+    let dashboard: TenantDashboardResponse;
 
-    // Verify backend tenant resolution.
+    try {
+      dashboard = await firstValueFrom(
+        this.http.get<TenantDashboardResponse>(
+          `${environment.tenantManagement.baseUrl}` +
+          `/api/tenant/v1/dashboard`,
+          {
+            headers: new HttpHeaders({
+              Authorization: `Bearer ${apiToken}`
+            })
+          }
+        )
+      );
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
+        throw new Error(
+          'Microsoft sign-in succeeded, but this identity is not linked to an active OmniTruth Company Admin account. Complete your invitation or contact your OmniTruth administrator.'
+        );
+      }
+      throw error;
+    }
+
+    const tenant = dashboard?.tenant;
+
+    if (!tenant?.tenantCode || !tenant.companyName) {
+      throw new Error(
+        'Tenant Management returned an incomplete workspace response.'
+      );
+    }
+
+    if (tenant.status?.toUpperCase() !== 'ACTIVE') {
+      throw new Error(
+        'Your OmniTruth organisation is not active. Contact your administrator.'
+      );
+    }
+
+    // If the legacy tenant-slug route was used, verify it against the backend.
     if (
-      context.tenantSlug?.toLowerCase() !==
-      tenant.tenantSlug.toLowerCase()
+      resolvedTenant &&
+      tenant.tenantCode.toLowerCase() !==
+      resolvedTenant.tenantSlug.toLowerCase()
     ) {
       throw new Error(
         'Organisation context verification failed.'
       );
     }
 
-    if (!context.roles || context.roles.length === 0) {
-      throw new Error(
-        'No application roles are assigned.'
-      );
-    }
-
     this.isLoading = false;
+    this.statusMessage = `Welcome to ${tenant.companyName}`;
 
-    // Company Admin.
-    if (context.roles.includes('COMPANY_ADMIN')) {
-
-      this.statusMessage =
-        `Welcome to ${context.companyName}`;
-
-      await this.router.navigate([
-        '/app',
-        context.tenantSlug,
-        'dashboard'
-      ]);
-
-      return;
-    }
-
-    // Employee.
-    if (context.roles.includes('COMPANY_USER')) {
-
-      this.statusMessage =
-        `Welcome to ${context.companyName}`;
-
-      await this.router.navigate([
-        '/app',
-        context.tenantSlug,
-        'home'
-      ]);
-
-      return;
-    }
-
-    throw new Error(
-      'Your account does not have an authorised OmniTruth role.'
-    );
+    await this.router.navigate([
+      '/app',
+      tenant.tenantCode,
+      'dashboard'
+    ]);
   }
 
 

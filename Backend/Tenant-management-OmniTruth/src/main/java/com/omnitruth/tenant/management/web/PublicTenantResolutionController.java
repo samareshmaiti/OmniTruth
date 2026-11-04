@@ -34,4 +34,5 @@ public class PublicTenantResolutionController {
                 tenant.getStatus()
         );
     }
+
 }

@@ -10,11 +10,13 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/public/v1/invitations")
+@CrossOrigin("http://localhost:4200/")
 public class CompanyAdminInvitationController {
 
     private final CompanyAdminOnboardingService onboardingService;
@@ -38,9 +40,33 @@ public class CompanyAdminInvitationController {
     // This endpoint requires a verified Microsoft Entra access token.
     @PostMapping("/complete")
     public ResponseEntity<OnboardingCompleteResponse> complete(
-            @Valid @RequestBody CompleteOnboardingRequest request,
+            @RequestBody @Valid CompleteOnboardingRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        return noStore(onboardingService.completeOnboarding(request.invitationToken(), jwt));
+
+        System.out.println("1. Controller entered");
+
+        try {
+            System.out.println("2. JWT subject: " + jwt.getSubject());
+            System.out.println("3. Calling onboarding service");
+
+            OnboardingCompleteResponse response =
+                    onboardingService.completeOnboarding(
+                            request.invitationToken(),
+                            jwt
+                    );
+
+            System.out.println("4. Onboarding service completed");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception ex) {
+            System.err.println("5. Onboarding failed: "
+                    + ex.getClass().getName());
+            System.err.println("Error: " + ex.getMessage());
+
+            ex.printStackTrace();
+            throw ex;
+        }
     }
 
     private <T> ResponseEntity<T> noStore(T body) {
