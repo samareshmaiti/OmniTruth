@@ -27,7 +27,6 @@ import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../../environment';
 
-
 // --------------------------------------------------
 // INTERFACES
 // --------------------------------------------------
@@ -40,6 +39,7 @@ interface PlatformApiTokenClaims {
   scp?: string;
   tid?: string;
   oid?: string;
+  sub?: string;
   exp?: number;
 }
 
@@ -77,16 +77,12 @@ interface LoginOptions {
   prompt?: 'select_account' | 'login' | 'none';
 }
 
-
-// Signals that MSAL is starting an interactive token redirect.
-// This is not an authentication failure.
 class RedirectInProgressError extends Error {
   constructor() {
     super('Redirecting to Microsoft to complete authentication.');
     this.name = 'RedirectInProgressError';
   }
 }
-
 
 // --------------------------------------------------
 // COMPONENT
@@ -114,13 +110,16 @@ export class LoginComponent implements OnInit {
 
   readonly currentYear = new Date().getFullYear();
 
+  // Microsoft consumer account tenant.
+  private readonly consumerTenantId =
+    '9188040d-6c67-4c5b-b112-36a304b66dad';
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private http: HttpClient,
     private msalService: MsalService
   ) {}
-
 
   // --------------------------------------------------
   // INITIALIZATION / MICROSOFT REDIRECT
@@ -129,7 +128,6 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     this.handleMicrosoftRedirect();
   }
-
 
   private handleMicrosoftRedirect(): void {
 
@@ -141,18 +139,13 @@ export class LoginComponent implements OnInit {
 
       next: async (result: AuthenticationResult | null) => {
 
-        /*
-         * Normal visit to /login:
-         * No redirect result exists.
-         * Do not automatically reuse a cached account
-         * and classify it as a Super Admin.
-         */
         if (!result) {
           this.isLoading = false;
           return;
         }
 
-        const account: AccountInfo | null = result.account ?? null;
+        const account: AccountInfo | null =
+          result.account ?? null;
 
         if (!account) {
           this.isLoading = false;
@@ -174,10 +167,13 @@ export class LoginComponent implements OnInit {
               loginState
             );
 
-          } else if (
-            loginState.flow === 'customer' &&
-            loginState.tenantSlug
-          ) {
+          } else if (loginState.flow === 'customer') {
+
+            if (!loginState.tenantSlug) {
+              throw new Error(
+                'Customer organisation information is missing.'
+              );
+            }
 
             await this.handleCustomerLogin(
               account,
@@ -187,17 +183,51 @@ export class LoginComponent implements OnInit {
 
           } else if (loginState.flow === 'auto') {
 
-            // Route by the authenticated Entra tenant, not by email text.
+            const authenticatedTenantId =
+              account.tenantId?.toLowerCase();
+
+            if (!authenticatedTenantId) {
+              throw new Error(
+                'Microsoft did not return an authenticated tenant ID.'
+              );
+            }
+
+            // Personal Microsoft accounts are routed to
+            // the Platform Super Admin verification flow.
             if (
-              account.tenantId?.toLowerCase() ===
+              authenticatedTenantId ===
+              this.consumerTenantId
+            ) {
+
+              await this.handlePlatformLogin(
+                account,
+                {
+                  ...loginState,
+                  flow: 'platform'
+                }
+              );
+
+            } else if (
+              authenticatedTenantId ===
               environment.azure.tenantId.toLowerCase()
             ) {
-              await this.handlePlatformLogin(account, {
-                ...loginState,
-                flow: 'platform'
-              });
+
+              // OmniTruth vendor organizational account.
+              await this.handlePlatformLogin(
+                account,
+                {
+                  ...loginState,
+                  flow: 'platform'
+                }
+              );
+
             } else {
-              await this.handleCustomerLogin(account, loginState);
+
+              // Other organizational accounts use customer login.
+              await this.handleCustomerLogin(
+                account,
+                loginState
+              );
             }
 
           } else {
@@ -213,7 +243,10 @@ export class LoginComponent implements OnInit {
             return;
           }
 
-          console.error('Login processing failed:', error);
+          console.error(
+            'Login processing failed:',
+            error
+          );
 
           this.isLoading = false;
           this.statusMessage = '';
@@ -227,7 +260,10 @@ export class LoginComponent implements OnInit {
 
       error: (error) => {
 
-        console.error('Microsoft redirect error:', error);
+        console.error(
+          'Microsoft redirect error:',
+          error
+        );
 
         this.isLoading = false;
         this.statusMessage = '';
@@ -237,7 +273,6 @@ export class LoginComponent implements OnInit {
       }
     });
   }
-
 
   // --------------------------------------------------
   // RECOVER LOGIN FLOW FROM OAUTH STATE
@@ -251,7 +286,9 @@ export class LoginComponent implements OnInit {
 
       try {
 
-        const state = JSON.parse(result.state) as LoginState;
+        const state = JSON.parse(
+          result.state
+        ) as LoginState;
 
         if (state.flow === 'platform') {
           return state;
@@ -274,14 +311,12 @@ export class LoginComponent implements OnInit {
         }
 
       } catch {
-        console.warn('Unable to parse Microsoft login state.');
+        console.warn(
+          'Unable to parse Microsoft login state.'
+        );
       }
     }
 
-    /*
-     * Optional fallback for customer-specific login routes.
-     * Do not default an unknown flow to platform login.
-     */
     const tenantSlug =
       this.route.snapshot.paramMap.get('tenantSlug');
 
@@ -297,7 +332,6 @@ export class LoginComponent implements OnInit {
     );
   }
 
-
   // --------------------------------------------------
   // COMMON LOGIN ENTRY
   // --------------------------------------------------
@@ -309,28 +343,27 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    const normalizedEmail = this.email.trim().toLowerCase();
+    const normalizedEmail =
+      this.email.trim().toLowerCase();
 
     if (!normalizedEmail) {
-      this.errorMessage = 'Enter your work email address.';
+      this.errorMessage =
+        'Enter your work email address.';
       return;
     }
 
-    // Microsoft uses the email as a home-realm discovery hint.
-    // The authenticated Entra tenant ID decides the application flow.
     this.startLogin(
       {
         flow: 'auto',
         email: normalizedEmail
       },
-      environment.azure.organizationsAuthority,
+      environment.azure.commonAuthority,
       {
         loginHint: normalizedEmail,
         prompt: 'select_account'
       }
     );
   }
-
 
   // --------------------------------------------------
   // PLATFORM SUPER ADMIN LOGIN
@@ -344,11 +377,10 @@ export class LoginComponent implements OnInit {
     }
 
     this.startLogin(
-      { flow: 'platform' },
-
-      // Vendor tenant authority.
-      environment.azure.authority,
-
+      {
+        flow: 'platform'
+      },
+      environment.azure.commonAuthority,
       {
         loginHint: this.email.trim(),
         prompt: 'select_account'
@@ -356,42 +388,47 @@ export class LoginComponent implements OnInit {
     );
   }
 
-
   private async handlePlatformLogin(
     account: AccountInfo,
     loginState: LoginState
   ): Promise<void> {
 
-    this.statusMessage = 'Verifying administrator account...';
+    this.statusMessage =
+      'Verifying administrator account...';
 
-    // Verify vendor tenant.
-    if (
-      account.tenantId?.toLowerCase() !==
-      environment.azure.tenantId.toLowerCase()
-    ) {
+    const authenticatedTenantId =
+      account.tenantId?.toLowerCase();
+
+    if (!authenticatedTenantId) {
       throw new Error(
-        'Invalid OmniTruth administrator tenant.'
+        'Microsoft did not return an authenticated tenant ID.'
       );
     }
 
-    // Verify Super Admin application role.
-    const claims = account.idTokenClaims as {
-      roles?: string[];
-    } | undefined;
+    const isConsumerAccount =
+      authenticatedTenantId === this.consumerTenantId;
 
-    const roles = claims?.roles ?? [];
+    const isVendorAccount =
+      authenticatedTenantId ===
+      environment.azure.tenantId.toLowerCase();
 
-    if (!roles.includes('PLATFORM_SUPER_ADMIN')) {
+    if (!isConsumerAccount && !isVendorAccount) {
       throw new Error(
-        'Platform Super Admin role is not assigned.'
+        'This account is not authorized for OmniTruth Platform Administration.'
       );
     }
 
-    // Obtain Platform API access token.
+    const apiAuthority = isConsumerAccount
+      ? environment.azure.commonAuthority
+      : environment.azure.authority;
+
     const apiToken = await this.acquireApiToken(
       account,
-      environment.azure.authority,
-      loginState
+      apiAuthority,
+      {
+        ...loginState,
+        flow: 'platform'
+      }
     );
 
     const apiClaims =
@@ -399,17 +436,61 @@ export class LoginComponent implements OnInit {
 
     this.validatePlatformApiClaims(
       apiClaims,
-      environment.azure.tenantId
+      isConsumerAccount
+        ? this.consumerTenantId
+        : environment.azure.tenantId
     );
+
+    this.statusMessage =
+      'Checking Platform Administrator permissions...';
+
+    // Existing endpoint. No new endpoint is introduced.
+    try {
+
+      await firstValueFrom(
+        this.http.get(
+          `${environment.platformApi.baseUrl}` +
+          `/api/platform/v1/tenants?page=0&size=1`,
+          {
+            headers: new HttpHeaders({
+              Authorization: `Bearer ${apiToken}`
+            })
+          }
+        )
+      );
+
+    } catch (error) {
+
+      if (
+        error instanceof HttpErrorResponse &&
+        error.status === 401
+      ) {
+        throw new Error(
+          'Platform API rejected the Microsoft access token. Check the API token issuer, signature, audience and scope configuration.'
+        );
+      }
+
+      if (
+        error instanceof HttpErrorResponse &&
+        error.status === 403
+      ) {
+        throw new Error(
+          'Your Microsoft account is authenticated, but it is not registered as an active OmniTruth Platform Super Admin.'
+        );
+      }
+
+      throw error;
+    }
 
     this.isLoading = false;
 
     this.statusMessage =
       'Welcome to OmniTruth Super Admin Portal';
 
-    await this.router.navigate(['/superAdmin']);
+    await this.router.navigate([
+      '/superAdmin'
+    ]);
   }
-
 
   // --------------------------------------------------
   // EXISTING CUSTOMER LOGIN
@@ -434,9 +515,10 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    void this.resolveTenantAndStartLogin(normalizedSlug);
+    void this.resolveTenantAndStartLogin(
+      normalizedSlug
+    );
   }
-
 
   private async resolveTenantAndStartLogin(
     tenantSlug: string
@@ -444,7 +526,8 @@ export class LoginComponent implements OnInit {
 
     this.isLoading = true;
     this.errorMessage = '';
-    this.statusMessage = 'Checking your organisation...';
+    this.statusMessage =
+      'Checking your organisation...';
 
     try {
 
@@ -468,7 +551,6 @@ export class LoginComponent implements OnInit {
         );
       }
 
-      // A customer must not resolve to the vendor directory.
       if (
         tenant.entraTenantId.toLowerCase() ===
         environment.azure.tenantId.toLowerCase()
@@ -486,19 +568,18 @@ export class LoginComponent implements OnInit {
           flow: 'customer',
           tenantSlug: tenant.tenantSlug
         },
-
-        // Existing customer: use its already-mapped tenant.
         customerAuthority,
-
         {
-          // Do not force the invitation email or personal Gmail.
           prompt: 'select_account'
         }
       );
 
     } catch (error) {
 
-      console.error('Tenant resolution failed:', error);
+      console.error(
+        'Tenant resolution failed:',
+        error
+      );
 
       this.isLoading = false;
       this.statusMessage = '';
@@ -510,12 +591,17 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  private async handleCustomerLogin(
+    account: AccountInfo,
+    loginState: LoginState,
+    tenantSlug?: string
+  ): Promise<void> {
 
-  private async handleCustomerLogin(account: AccountInfo, loginState: LoginState, tenantSlug?: string): Promise<void> {
+    this.statusMessage =
+      'Verifying your organisation...';
 
-    this.statusMessage = 'Verifying your organisation...';
-
-    const entraTenantId = account.tenantId?.trim();
+    const entraTenantId =
+      account.tenantId?.trim();
 
     if (!entraTenantId) {
       throw new Error(
@@ -523,7 +609,6 @@ export class LoginComponent implements OnInit {
       );
     }
 
-    // A vendor-directory identity must pass the existing Super Admin flow.
     if (
       entraTenantId.toLowerCase() ===
       environment.azure.tenantId.toLowerCase()
@@ -533,10 +618,21 @@ export class LoginComponent implements OnInit {
       );
     }
 
+    // Personal Microsoft accounts are not customer
+    // organizational identities.
+    if (
+      entraTenantId.toLowerCase() ===
+      this.consumerTenantId
+    ) {
+      throw new Error(
+        'Please use your organisation Microsoft 365 account to access the customer workspace.'
+      );
+    }
+
     let resolvedTenant: TenantResolutionResponse | null = null;
 
-    // Keep support for the existing tenant-slug customer sign-in route.
     if (tenantSlug) {
+
       resolvedTenant = await firstValueFrom(
         this.http.get<TenantResolutionResponse>(
           `${environment.tenantManagement.baseUrl}` +
@@ -564,27 +660,27 @@ export class LoginComponent implements OnInit {
     const customerAuthority =
       `https://login.microsoftonline.com/${entraTenantId}`;
 
-    // Obtain the API token from the authenticated customer's Entra tenant.
     const apiToken = await this.acquireApiToken(
       account,
       customerAuthority,
       loginState
     );
 
-    const tokenClaims = this.decodeAccessTokenClaims(apiToken);
+    const tokenClaims =
+      this.decodeAccessTokenClaims(apiToken);
 
     this.validatePlatformApiClaims(
       tokenClaims,
       entraTenantId
     );
 
-    this.statusMessage = 'Verifying your OmniTruth workspace access...';
+    this.statusMessage =
+      'Verifying your OmniTruth workspace access...';
 
-    // Tenant Management exposes a Company Admin-protected dashboard endpoint.
-    // It resolves the tenant from the validated Entra tid and oid claims.
     let dashboard: TenantDashboardResponse;
 
     try {
+
       dashboard = await firstValueFrom(
         this.http.get<TenantDashboardResponse>(
           `${environment.tenantManagement.baseUrl}` +
@@ -596,12 +692,18 @@ export class LoginComponent implements OnInit {
           }
         )
       );
+
     } catch (error) {
-      if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
+
+      if (
+        error instanceof HttpErrorResponse &&
+        [401, 403].includes(error.status)
+      ) {
         throw new Error(
           'Microsoft sign-in succeeded, but this identity is not linked to an active OmniTruth Company Admin account. Complete your invitation or contact your OmniTruth administrator.'
         );
       }
+
       throw error;
     }
 
@@ -619,7 +721,6 @@ export class LoginComponent implements OnInit {
       );
     }
 
-    // If the legacy tenant-slug route was used, verify it against the backend.
     if (
       resolvedTenant &&
       tenant.tenantCode.toLowerCase() !==
@@ -631,7 +732,9 @@ export class LoginComponent implements OnInit {
     }
 
     this.isLoading = false;
-    this.statusMessage = `Welcome to ${tenant.companyName}`;
+
+    this.statusMessage =
+      `Welcome to ${tenant.companyName}`;
 
     await this.router.navigate([
       '/app',
@@ -639,7 +742,6 @@ export class LoginComponent implements OnInit {
       'dashboard'
     ]);
   }
-
 
   // --------------------------------------------------
   // COMMON MICROSOFT LOGIN
@@ -652,6 +754,7 @@ export class LoginComponent implements OnInit {
   ): void {
 
     this.isLoading = true;
+
     this.statusMessage =
       'Redirecting to Microsoft...';
 
@@ -659,7 +762,6 @@ export class LoginComponent implements OnInit {
 
     const request: RedirectRequest = {
 
-      // Authority is explicitly selected for each flow.
       authority,
 
       redirectUri:
@@ -671,17 +773,19 @@ export class LoginComponent implements OnInit {
         environment.platformApi.scope
       ],
 
-      // Preserve the original flow after redirect.
       state: JSON.stringify(state),
 
-      prompt: options.prompt ?? 'select_account',
+      prompt:
+        options.prompt ?? 'select_account',
 
       ...(options.loginHint
         ? { loginHint: options.loginHint }
         : {})
     };
 
-    this.msalService.loginRedirect(request).subscribe({
+    this.msalService.loginRedirect(
+      request
+    ).subscribe({
 
       error: (error) => {
 
@@ -699,9 +803,8 @@ export class LoginComponent implements OnInit {
     });
   }
 
-
   // --------------------------------------------------
-  // PLATFORM API ACCESS TOKEN
+  // API ACCESS TOKEN
   // --------------------------------------------------
 
   private async acquireApiToken(
@@ -724,6 +827,12 @@ export class LoginComponent implements OnInit {
         })
       );
 
+      if (!result.accessToken) {
+        throw new Error(
+          'Microsoft returned an empty API access token.'
+        );
+      }
+
       return result.accessToken;
 
     } catch (silentError) {
@@ -745,7 +854,6 @@ export class LoginComponent implements OnInit {
           environment.platformApi.scope
         ],
 
-        // Important: preserve platform/customer flow.
         state: JSON.stringify(loginState),
 
         prompt: 'select_account'
@@ -754,7 +862,9 @@ export class LoginComponent implements OnInit {
       try {
 
         await firstValueFrom(
-          this.msalService.acquireTokenRedirect(request)
+          this.msalService.acquireTokenRedirect(
+            request
+          )
         );
 
       } catch (redirectError) {
@@ -767,11 +877,9 @@ export class LoginComponent implements OnInit {
         throw redirectError;
       }
 
-      // The browser should now be redirecting to Microsoft.
       throw new RedirectInProgressError();
     }
   }
-
 
   // --------------------------------------------------
   // JWT CLAIM DECODING
@@ -810,7 +918,6 @@ export class LoginComponent implements OnInit {
     ) as PlatformApiTokenClaims;
   }
 
-
   // --------------------------------------------------
   // FRONTEND TOKEN CHECKS
   // --------------------------------------------------
@@ -821,7 +928,8 @@ export class LoginComponent implements OnInit {
   ): void {
 
     if (
-      claims.aud !== environment.platformApi.clientId
+      claims.aud !==
+      environment.platformApi.clientId
     ) {
       throw new Error(
         'Unexpected Platform API audience.'
@@ -854,17 +962,20 @@ export class LoginComponent implements OnInit {
       );
     }
 
-    // Diagnostics only. Backend must independently validate
-    // token signature, issuer, audience, expiry and tenant.
-    console.log('Platform API token diagnostics:', {
-      aud: claims.aud,
-      tid: claims.tid,
-      roles: claims.roles,
-      scp: claims.scp,
-      ver: claims.ver
-    });
+    // Diagnostics only. These decoded claims are not
+    // used as proof of authorization.
+    console.log(
+      'API token diagnostics:',
+      {
+        aud: claims.aud,
+        tid: claims.tid,
+        roles: claims.roles,
+        scp: claims.scp,
+        ver: claims.ver,
+        iss: claims.iss
+      }
+    );
   }
-
 
   // --------------------------------------------------
   // UI HELPERS
@@ -874,5 +985,4 @@ export class LoginComponent implements OnInit {
     this.statusMessage = '';
     this.errorMessage = '';
   }
-
 }

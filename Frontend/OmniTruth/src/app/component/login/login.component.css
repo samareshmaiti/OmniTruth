@@ -257,3 +257,48 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+
+/* Keyboard accessibility and resilient layout refinements */
+.brand:focus-visible,
+.back-link:focus-visible,
+.login-footer a:focus-visible,
+.continue-button:focus-visible {
+  outline: 3px solid rgba(15, 158, 154, .55);
+  outline-offset: 3px;
+}
+
+.email-field:focus-within {
+  border-color: #0f9e9a;
+  box-shadow: 0 0 0 4px rgba(15, 158, 154, .10);
+}
+
+.email-field input:focus-visible { outline: 0; }
+.status-message { overflow-wrap: anywhere; }
+.login-card, .intro-panel { min-width: 0; }
+
+@media (max-width: 420px) {
+  .login-header, .login-footer { width: calc(100% - 28px); }
+  .login-main { width: calc(100% - 28px); }
+  .login-card { padding: 22px 17px; }
+  .card-description { margin-bottom: 22px; }
+  .secure-label { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .continue-button, .back-link, .email-field { transition: none; }
+}
+
+
+.status-message-error {
+  border-color: #f0c9cc;
+  background: #fff5f5;
+}
+
+.status-message-error .status-mark {
+  background: #bd343d;
+}
+
+.status-message-error p {
+  color: #92343a;
+}

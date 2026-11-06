@@ -1,4 +1,4 @@
-CREATE TABLE tenants (
+CREATE TABLE tenants if not exists(
     tenant_id UUID PRIMARY KEY,
     tenant_code VARCHAR(80) NOT NULL UNIQUE,
     company_name VARCHAR(180) NOT NULL,

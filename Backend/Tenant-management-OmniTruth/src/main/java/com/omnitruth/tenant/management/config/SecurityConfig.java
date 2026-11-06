@@ -50,21 +50,13 @@ import java.util.regex.Pattern;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private static final Pattern ENTRA_ISSUER =
-            Pattern.compile("^https://login\\.microsoftonline\\.com/([0-9a-fA-F-]{36})/v2\\.0$");
+    private static final Pattern ENTRA_ISSUER = Pattern.compile("^https://login\\.microsoftonline\\.com/([0-9a-fA-F-]{36})/v2\\.0$");
 
-    private static final String COMPLETE_ONBOARDING_PATH =
-            "/api/public/v1/invitations/complete";
+    private static final String COMPLETE_ONBOARDING_PATH = "/api/public/v1/invitations/complete";
 
-    // ---------------------------------------------------------
     // SECURITY FILTER CHAIN
-    // ---------------------------------------------------------
-
     @Bean
-    SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            AuthenticationManagerResolver<HttpServletRequest> tenantAuthenticationManagerResolver
-    ) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManagerResolver<HttpServletRequest> tenantAuthenticationManagerResolver) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -78,14 +70,8 @@ public class SecurityConfig {
                         // Invitation completion requires a valid Entra JWT.
                         // This endpoint also permits not-yet-mapped Entra tenants.
                         .requestMatchers(HttpMethod.POST, COMPLETE_ONBOARDING_PATH).authenticated()
-
-                        // Other public APIs
                         .requestMatchers("/api/public/**").permitAll()
-
-                        // Tenant APIs require COMPANY_ADMIN role
                         .requestMatchers("/api/tenant/v1/**").hasRole("COMPANY_ADMIN")
-
-                        // Deny everything else
                         .anyRequest().denyAll()
                 )
                 .oauth2ResourceServer(oauth -> oauth
@@ -96,108 +82,65 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ---------------------------------------------------------
     // PUBLIC-AWARE BEARER TOKEN RESOLVER
-    // ---------------------------------------------------------
-
     @Bean
     BearerTokenResolver publicAwareBearerTokenResolver() {
         DefaultBearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
 
         return request -> {
             String path = request.getServletPath();
-
-            // Public APIs do not authenticate optional bearer tokens.
-            // Invitation completion remains JWT-protected.
-            if (path.startsWith("/api/public/")
-                    && !COMPLETE_ONBOARDING_PATH.equals(path)) {
+            if (path.startsWith("/api/public/") && !COMPLETE_ONBOARDING_PATH.equals(path)) {
                 return null;
             }
-
             return defaultResolver.resolve(request);
         };
     }
-
-    // ---------------------------------------------------------
     // CORS CONFIGURATION
-    // ---------------------------------------------------------
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource(
-            @Value("${omnitruth.security.allowed-origins:http://localhost:4200}")
-            String allowedOrigins
-    ) {
+    CorsConfigurationSource corsConfigurationSource(@Value("${omnitruth.security.allowed-origins:http://localhost:4200}") String allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(
-                Arrays.stream(allowedOrigins.split(","))
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
                         .map(String::trim)
                         .filter(value -> !value.isBlank())
                         .toList()
         );
 
-        configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        );
-
-        configuration.setAllowedHeaders(
-                List.of("Authorization", "Content-Type", "Accept")
-        );
-
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setExposedHeaders(List.of("Location"));
         configuration.setAllowCredentials(false);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 
-    // ---------------------------------------------------------
     // MULTI-TENANT AUTHENTICATION MANAGER RESOLVER
-    // ---------------------------------------------------------
-
     @Bean
-    AuthenticationManagerResolver<HttpServletRequest> tenantAuthenticationManagerResolver(
-            TenantIdentityMappingRepository mappings,
-            TenantUserRepository tenantUsers,
-            @Value("${omnitruth.security.api-audience}") String apiAudience
-    ) {
+    AuthenticationManagerResolver<HttpServletRequest> tenantAuthenticationManagerResolver(TenantIdentityMappingRepository mappings, TenantUserRepository tenantUsers, @Value("${omnitruth.security.api-audience}") String apiAudience) {
 
-        Map<String, AuthenticationManager> managerCache =
-                new ConcurrentHashMap<>();
-
+        Map<String, AuthenticationManager> managerCache = new ConcurrentHashMap<>();
         AuthenticationManagerResolver<String> managerForIssuer = issuer -> {
             Matcher matcher = ENTRA_ISSUER.matcher(issuer);
-
             if (!matcher.matches()) {
                 return null;
             }
 
             String entraTenantId = matcher.group(1);
-
             return managerCache.computeIfAbsent(issuer, trustedIssuer -> {
-
                 // Create JWT decoder for the Entra issuer
                 NimbusJwtDecoder decoder = NimbusJwtDecoder
                         .withIssuerLocation(trustedIssuer)
                         .build();
 
-                // -------------------------------------------------
                 // AUDIENCE VALIDATION
-                // -------------------------------------------------
-
                 OAuth2TokenValidator<Jwt> audienceValidator = jwt ->
                         jwt.getAudience().contains(apiAudience)
                                 ? OAuth2TokenValidatorResult.success()
                                 : OAuth2TokenValidatorResult.failure(
-                                new OAuth2Error(
-                                        "invalid_token",
-                                        "Unexpected token audience.",
-                                        null
-                                )
+                                new OAuth2Error("invalid_token", "Unexpected token audience.", null)
                         );
 
                 // -------------------------------------------------
@@ -314,27 +257,13 @@ public class SecurityConfig {
     // JWT AUTHENTICATION CONVERTER
     // ---------------------------------------------------------
 
-    private JwtAuthenticationConverter jwtAuthenticationConverter(
-            TenantUserRepository tenantUsers
-    ) {
-        JwtGrantedAuthoritiesConverter scopes =
-                new JwtGrantedAuthoritiesConverter();
-
-        JwtAuthenticationConverter converter =
-                new JwtAuthenticationConverter();
-
+    private JwtAuthenticationConverter jwtAuthenticationConverter(TenantUserRepository tenantUsers) {
+        JwtGrantedAuthoritiesConverter scopes = new JwtGrantedAuthoritiesConverter();
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-
-            Set<GrantedAuthority> authorities =
-                    new LinkedHashSet<>();
-
-            // -------------------------------------------------
+            Set<GrantedAuthority> authorities = new LinkedHashSet<>();
             // SCOPE AUTHORITIES
-            // -------------------------------------------------
-
-            Collection<GrantedAuthority> scopeAuthorities =
-                    scopes.convert(jwt);
-
+            Collection<GrantedAuthority> scopeAuthorities = scopes.convert(jwt);
             if (scopeAuthorities != null) {
                 authorities.addAll(scopeAuthorities);
             }
@@ -344,15 +273,11 @@ public class SecurityConfig {
             // -------------------------------------------------
             // Preserve existing Entra app-role claims.
 
-            List<String> entraRoles =
-                    jwt.getClaimAsStringList("roles");
-
+            List<String> entraRoles = jwt.getClaimAsStringList("roles");
             if (entraRoles != null) {
                 entraRoles.stream()
                         .filter(Objects::nonNull)
-                        .map(role ->
-                                new SimpleGrantedAuthority("ROLE_" + role)
-                        )
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                         .forEach(authorities::add);
             }
 
@@ -362,24 +287,13 @@ public class SecurityConfig {
             // Resolve Company Admin role using immutable
             // Entra identity: tenant ID + object ID.
 
-            String entraTenantId =
-                    jwt.getClaimAsString("tid");
-
-            String entraObjectId =
-                    jwt.getClaimAsString("oid");
-
+            String entraTenantId = jwt.getClaimAsString("tid");
+            String entraObjectId = jwt.getClaimAsString("oid");
             if (entraTenantId != null && entraObjectId != null) {
-                tenantUsers
-                        .findByEntraTenantIdIgnoreCaseAndEntraObjectIdIgnoreCaseAndStatus(
-                                entraTenantId,
-                                entraObjectId,
-                                "ACTIVE"
-                        )
+                tenantUsers.findByEntraTenantIdIgnoreCaseAndEntraObjectIdIgnoreCaseAndStatus(entraTenantId, entraObjectId, "ACTIVE")
                         .map(TenantUser::getAppRole)
                         .filter("COMPANY_ADMIN"::equals)
-                        .map(role ->
-                                new SimpleGrantedAuthority("ROLE_" + role)
-                        )
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                         .ifPresent(authorities::add);
             }
 

@@ -14,27 +14,17 @@ public class InvitationTokenService {
     public String generateToken() {
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
-
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public String hashToken(String token) {
         try {
-            MessageDigest digest =
-                    MessageDigest.getInstance("SHA-256");
-
-            byte[] hash = digest.digest(
-                    token.getBytes(java.nio.charset.StandardCharsets.UTF_8)
-            );
-
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             return java.util.HexFormat.of().formatHex(hash);
 
         } catch (Exception ex) {
-            throw new IllegalStateException(
-                    "Unable to hash invitation token", ex
-            );
+            throw new IllegalStateException("Unable to hash invitation token", ex);
         }
     }
 }

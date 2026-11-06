@@ -35,8 +35,8 @@
       </h1>
 
       <p class="intro-copy">
-        Sign in with your company email. OmniTruth will identify your
-        organisation and send you to its configured single sign-on provider.
+        Sign in with your company email. OmniTruth will identify the Microsoft Entra tenant associated with your
+        work account and route you to the correct workspace.
       </p>
 
       <div class="benefit-list">
@@ -109,11 +109,11 @@
       <h2 id="login-title">Sign in to OmniTruth</h2>
 
       <p class="card-description">
-        Enter your work email to find your company's sign-in page.
+        Enter your work email to continue with your organisation's Microsoft sign-in.
       </p>
 
       <form #loginForm="ngForm"
-            (ngSubmit)="onContinue(loginForm)"
+            (ngSubmit)="onCommonContinue(loginForm)"
             novalidate>
 
         <label for="workEmail">Work email address</label>
@@ -157,7 +157,7 @@
         </small>
 
         <small id="email-help" class="field-help">
-          Use the email address your company invited to OmniTruth.
+          Use the work account registered with your organisation's Microsoft Entra tenant.
         </small>
 
         <button class="continue-button"
@@ -169,11 +169,14 @@
       </form>
 
       <div class="status-message"
-           *ngIf="statusMessage"
-           role="status"
-           aria-live="polite">
-        <span class="status-mark" aria-hidden="true">i</span>
-        <p>{{ statusMessage }}</p>
+           *ngIf="statusMessage || errorMessage"
+           [class.status-message-error]="!!errorMessage"
+           [attr.role]="errorMessage ? 'alert' : 'status'"
+           [attr.aria-live]="errorMessage ? 'assertive' : 'polite'">
+        <span class="status-mark" aria-hidden="true">
+          {{ errorMessage ? '!' : 'i' }}
+        </span>
+        <p>{{ errorMessage || statusMessage }}</p>
       </div>
 
       <div class="divider">
@@ -188,7 +191,7 @@
           <p>
             <strong>Find your organisation</strong>
             <small>
-              We use your email domain to look up its verified sign-in configuration.
+              Microsoft identifies the tenant associated with your work account.
             </small>
           </p>
         </div>
@@ -198,7 +201,7 @@
           <p>
             <strong>Verify with your company</strong>
             <small>
-              Your browser is redirected to your organisation's identity provider.
+              Sign in with your organisation's Microsoft Entra account.
             </small>
           </p>
         </div>
@@ -208,7 +211,7 @@
           <p>
             <strong>Access your workspace</strong>
             <small>
-              OmniTruth checks your active membership and permissions.
+              OmniTruth verifies your tenant and membership before opening your workspace.
             </small>
           </p>
         </div>

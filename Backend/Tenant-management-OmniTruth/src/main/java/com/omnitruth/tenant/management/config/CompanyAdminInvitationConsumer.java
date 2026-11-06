@@ -22,6 +22,7 @@ public class CompanyAdminInvitationConsumer {
             containerFactory = "companyAdminInvitationKafkaListenerFactory"
     )
     public void consume(CompanyAdminInvitationRequestedEvent event) {
+        System.out.println("Received CompanyAdminInvitationRequestedEvent: " + event);
         invitationService.processInvitation(event);
     }
 }

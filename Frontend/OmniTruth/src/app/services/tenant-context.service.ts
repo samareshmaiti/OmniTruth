@@ -62,7 +62,7 @@ export class TenantContextService {
 
     const authority = account.tenantId
       ? `https://login.microsoftonline.com/${account.tenantId}`
-      : environment.azure.organizationsAuthority;
+      :  environment.azure.commonAuthority;
 
     const result = await firstValueFrom(
       this.msal.acquireTokenSilent({ account, authority, scopes: [scope] })

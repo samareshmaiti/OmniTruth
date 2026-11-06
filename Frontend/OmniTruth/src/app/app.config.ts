@@ -32,7 +32,7 @@ export function MSALInstanceFactory(): IPublicClientApplication {
       clientId: environment.azure.clientId,
 
       // Default for customer organizational accounts
-      authority: environment.azure.organizationsAuthority,
+      authority: environment.azure.commonAuthority,
 
       redirectUri: 'http://localhost:4200/login',
       postLogoutRedirectUri: 'http://localhost:4200/home'
@@ -54,7 +54,7 @@ export function MSALGuardConfigFactory() {
   return {
     interactionType: InteractionType.Redirect,
     authRequest: {
-      authority: environment.azure.organizationsAuthority,
+      authority: environment.azure.commonAuthority,
       scopes: ['openid', 'profile']
     }
   };

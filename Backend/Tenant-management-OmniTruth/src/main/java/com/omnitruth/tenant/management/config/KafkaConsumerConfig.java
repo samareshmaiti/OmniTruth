@@ -28,56 +28,27 @@ public class KafkaConsumerConfig {
     private String autoOffsetReset;
 
     @Bean
-    public ConsumerFactory<String, CompanyAdminInvitationRequestedEvent>
-    companyAdminInvitationConsumerFactory() {
+    public ConsumerFactory<String, CompanyAdminInvitationRequestedEvent> companyAdminInvitationConsumerFactory() {
 
         Map<String, Object> props = new HashMap<>();
-
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
 
-        props.put(
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                autoOffsetReset
-        );
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        var keyDeserializer = new ErrorHandlingDeserializer<>(new StringDeserializer());
 
-        props.put(
-                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
-                false
-        );
+        var valueDeserializer = new ErrorHandlingDeserializer<>(new JacksonJsonDeserializer<>(
+                                CompanyAdminInvitationRequestedEvent.class).ignoreTypeHeaders());
 
-        var keyDeserializer =
-                new ErrorHandlingDeserializer<>(
-                        new StringDeserializer()
-                );
-
-        var valueDeserializer =
-                new ErrorHandlingDeserializer<>(
-                        new JacksonJsonDeserializer<>(
-                                CompanyAdminInvitationRequestedEvent.class
-                        ).ignoreTypeHeaders()
-                );
-
-        return new DefaultKafkaConsumerFactory<>(
-                props,
-                keyDeserializer,
-                valueDeserializer
-        );
+        return new DefaultKafkaConsumerFactory<>(props, keyDeserializer, valueDeserializer);
     }
 
     @Bean(name = "companyAdminInvitationKafkaListenerFactory")
-    public ConcurrentKafkaListenerContainerFactory<
-            String, CompanyAdminInvitationRequestedEvent>
-    companyAdminInvitationKafkaListenerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, CompanyAdminInvitationRequestedEvent> companyAdminInvitationKafkaListenerFactory() {
 
-        var factory =
-                new ConcurrentKafkaListenerContainerFactory<
-                        String, CompanyAdminInvitationRequestedEvent>();
-
-        factory.setConsumerFactory(
-                companyAdminInvitationConsumerFactory()
-        );
-
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, CompanyAdminInvitationRequestedEvent>();
+        factory.setConsumerFactory(companyAdminInvitationConsumerFactory());
         return factory;
     }
 }

@@ -1,29 +1,31 @@
-
 package com.omnitruth.platformadmin.config;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-
-// CORS imports
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -32,13 +34,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${omnitruth.security.issuer-uri}")
-    String issuerUri;
+    private static final String CONSUMER_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad";
 
     @Value("${omnitruth.security.required-audience}")
-    String requiredAudience;
+    private String requiredAudience;
 
-    // 1. CORS configuration
+    @Value("${omnitruth.security.platform-tenant-id}")
+    private String platformTenantId;
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -46,111 +49,122 @@ public class SecurityConfig {
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
         configuration.setExposedHeaders(List.of("Authorization"));
-
-        // Enable only if your Angular requests use credentials/cookies.
         configuration.setAllowCredentials(false);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
-        System.out.println("Inside security filter chain");
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         return http
-                // Enable CORS using the configuration above.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/actuator/health",
                                 "/actuator/info",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/api/platform/v1/**")
-                        .hasRole("PLATFORM_SUPER_ADMIN")
+                        .requestMatchers("/api/platform/v1/**").hasRole("PLATFORM_SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
-
-                // Microsoft Entra JWT authentication.
-                .oauth2ResourceServer(oauth -> oauth
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter)
-                        )
-                )
-
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
+                        jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .build();
     }
 
-    // 2. JWT decoder
     @Bean
     JwtDecoder jwtDecoder() {
+        // Microsoft common JWKS verifies signatures for both organizational and consumer accounts.
+        // The custom validator below still constrains issuer, tenant, audience and delegated scope.
+        NimbusJwtDecoder decoder = NimbusJwtDecoder
+                .withJwkSetUri("https://login.microsoftonline.com/common/discovery/v2.0/keys")
+                .jwsAlgorithm(SignatureAlgorithm.RS256)
+                .build();
 
-        NimbusJwtDecoder decoder =
-                NimbusJwtDecoder.withIssuerLocation(issuerUri).build();
+        OAuth2TokenValidator<Jwt> claimsValidator = jwt -> {
+            String tid = jwt.getClaimAsString("tid");
+            String issuer = jwt.getClaimAsString("iss");
+            String version = jwt.getClaimAsString("ver");
+            String scope = jwt.getClaimAsString("scp");
 
-        OAuth2TokenValidator<Jwt> issuerValidator =
-                JwtValidators.createDefaultWithIssuer(issuerUri);
+            boolean validTenantAndIssuer = false;
+            if (tid != null && issuer != null) {
+                try {
+                    UUID.fromString(tid);
+                    String expectedIssuer = "https://login.microsoftonline.com/" + tid + "/v2.0";
+                    validTenantAndIssuer = expectedIssuer.equals(issuer);
+                } catch (IllegalArgumentException ignored) {
+                    validTenantAndIssuer = false;
+                }
+            }
 
-        OAuth2TokenValidator<Jwt> audienceValidator = jwt -> {
+            boolean validAudience = jwt.getAudience() != null
+                    && jwt.getAudience().contains(requiredAudience);
+            boolean validScope = scope != null
+                    && List.of(scope.split("\\s+")).contains("access_as_user");
+            boolean validVersion = "2.0".equals(version);
 
-            if (jwt.getAudience() != null
-                    && jwt.getAudience().contains(requiredAudience)) {
-
+            if (validTenantAndIssuer && validAudience && validScope && validVersion) {
                 return OAuth2TokenValidatorResult.success();
             }
 
-            return OAuth2TokenValidatorResult.failure(
-                    new OAuth2Error(
-                            "invalid_token",
-                            "Required API audience is missing",
-                            null
-                    )
-            );
+            return OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                    "invalid_token",
+                    "Token issuer, tenant, audience, version, or delegated scope is invalid",
+                    null));
         };
 
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(issuerValidator, audienceValidator));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefault(), claimsValidator));
         return decoder;
     }
 
-    // 3. JWT authentication converter
     @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
-
-        JwtAuthenticationConverter converter =
-                new JwtAuthenticationConverter();
-
-        converter.setJwtGrantedAuthoritiesConverter(
-                this::platformAuthorities
-        );
-
+    JwtAuthenticationConverter jwtAuthenticationConverter(JdbcTemplate jdbcTemplate) {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> platformAuthorities(jwt, jdbcTemplate));
         return converter;
     }
 
-    // 4. Platform role mapping
-    private Collection<GrantedAuthority> platformAuthorities(Jwt jwt) {
+    private Collection<GrantedAuthority> platformAuthorities(Jwt jwt, JdbcTemplate jdbcTemplate) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        String tenantId = jwt.getClaimAsString("tid");
 
-        List<String> roles = jwt.getClaimAsStringList("roles");
-
-        if (roles == null || roles.isEmpty()) {
-            return List.of();
+        // Organizational OmniTruth administrators retain the existing Entra app-role path.
+        if (platformTenantId.equalsIgnoreCase(tenantId)) {
+            List<String> roles = jwt.getClaimAsStringList("roles");
+            if (roles != null && roles.stream().anyMatch(role ->
+                    "PLATFORM_SUPER_ADMIN".equals(role)
+                            || "PLATFORM_SUPER_ADMIN_USER".equals(role))) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"));
+            }
         }
 
-        return roles.stream()
-                .filter(role -> role != null && !role.isBlank())
-                .map(String::trim)
-                .filter(role ->
-                        "PLATFORM_SUPER_ADMIN".equals(role)
-                                || "PLATFORM_SUPER_ADMIN_USER".equals(role)
-                )
-                .map(role -> new SimpleGrantedAuthority(
-                        "ROLE_PLATFORM_SUPER_ADMIN"
-                ))
-                .distinct()
-                .map(GrantedAuthority.class::cast)
-                .toList();
+        // Consumer accounts have no Entra app roles. Grant only an explicitly provisioned identity.
+        if (CONSUMER_TENANT_ID.equalsIgnoreCase(tenantId)) {
+            String issuer = jwt.getClaimAsString("iss");
+            String subject = jwt.getSubject();
+            if (issuer != null && subject != null) {
+                Boolean registered = jdbcTemplate.queryForObject(
+                        "SELECT EXISTS (SELECT 1 FROM platform_admin_identities " +
+                                "WHERE issuer = ? AND subject = ? AND tenant_id = ? " +
+                                "AND app_role = 'PLATFORM_SUPER_ADMIN' AND active = TRUE)",
+                        Boolean.class,
+                        issuer,
+                        subject,
+                        UUID.fromString(CONSUMER_TENANT_ID));
+                if (Boolean.TRUE.equals(registered)) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"));
+                }
+            }
+        }
+
+        return authorities;
     }
 }
