@@ -1,10 +1,18 @@
 package com.omnitruth.tenant.management.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.Instant;
 import java.util.UUID;
-
+//This class is for tenants. While getting an invite from super admin
+//this table will save the tenant details
 @Entity
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(
     name = "tenant_users",
     uniqueConstraints = {
@@ -49,24 +57,4 @@ public class TenantUser {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public TenantUser() { }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-    public UUID getTenantId() { return tenantId; }
-    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
-    public String getEntraTenantId() { return entraTenantId; }
-    public void setEntraTenantId(String entraTenantId) { this.entraTenantId = entraTenantId; }
-    public String getEntraObjectId() { return entraObjectId; }
-    public void setEntraObjectId(String entraObjectId) { this.entraObjectId = entraObjectId; }
-    public String getInvitationEmail() { return invitationEmail; }
-    public void setInvitationEmail(String invitationEmail) { this.invitationEmail = invitationEmail; }
-    public String getAppRole() { return appRole; }
-    public void setAppRole(String appRole) { this.appRole = appRole; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -163,7 +163,7 @@ export class TenantComponent implements OnInit {
   }
 
   emptyClient(): TenantClientRequest {
-    return { clientName: '', contactEmail: '', externalReference: '', notes: '', status: 'ACTIVE' };
+    return { clientName: '', contactEmail: '', externalReference: '', notes: '', status: 'ACTIVE', tenantClientType: 'INDIVIDUAL_CLIENT', appRole: 'CLIENT_VIEWER' };
   }
 
   startNewClient(): void {
@@ -174,13 +174,17 @@ export class TenantComponent implements OnInit {
 
   editClient(client: TenantClient): void {
     this.editingClientId = client.clientId;
+  
     this.clientForm = {
       clientName: client.clientName,
       contactEmail: client.contactEmail ?? '',
       externalReference: client.externalReference ?? '',
       notes: client.notes ?? '',
-      status: client.status
+      tenantClientType: client.tenantClientType,
+      appRole: client.userType
     };
+  
+    this.setView('clients');
   }
 
   saveClient(): void {
@@ -313,7 +317,7 @@ export class TenantComponent implements OnInit {
   }
 
   logout(): void {
-    this.msal.logoutRedirect({ postLogoutRedirectUri: window.location.origin + '/login' });
+    this.msal.logoutRedirect({ postLogoutRedirectUri: window.location.origin + '/home' });
   }
 
   private errorText(error: any, fallback: string): string {

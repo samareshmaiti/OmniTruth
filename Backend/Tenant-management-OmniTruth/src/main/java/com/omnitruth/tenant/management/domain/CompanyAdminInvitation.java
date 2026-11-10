@@ -2,11 +2,19 @@
 package com.omnitruth.tenant.management.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(
     name = "company_admin_invitations",
     uniqueConstraints = {
@@ -67,86 +75,4 @@ public class CompanyAdminInvitation {
     @Column(name = "accepted_at")
     private Instant acceptedAt;
 
-    public CompanyAdminInvitation() {
-    }
-
-    public UUID getInvitationId() {
-        return invitationId;
-    }
-
-    public void setInvitationId(UUID invitationId) {
-        this.invitationId = invitationId;
-    }
-
-    public UUID getEventId() {
-        return eventId;
-    }
-
-    public void setEventId(UUID eventId) {
-        this.eventId = eventId;
-    }
-
-    public UUID getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(UUID tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getRequestedRole() {
-        return requestedRole;
-    }
-
-    public void setRequestedRole(String requestedRole) {
-        this.requestedRole = requestedRole;
-    }
-
-    public String getTokenHash() {
-        return tokenHash;
-    }
-
-    public void setTokenHash(String tokenHash) {
-        this.tokenHash = tokenHash;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getAcceptedAt() {
-        return acceptedAt;
-    }
-
-    public void setAcceptedAt(Instant acceptedAt) {
-        this.acceptedAt = acceptedAt;
-    }
 }

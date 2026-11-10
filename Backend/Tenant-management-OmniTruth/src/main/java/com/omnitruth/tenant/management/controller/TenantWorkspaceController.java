@@ -5,6 +5,8 @@ import com.omnitruth.tenant.management.domain.TenantProfileResponse;
 import com.omnitruth.tenant.management.service.TenantWorkspaceService;
 import com.omnitruth.tenant.management.web.dto.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
@@ -42,13 +44,16 @@ public class TenantWorkspaceController {
     // CLIENT MANAGEMENT
     // ==========================================
 
+    @Operation(summary = "Get all clients for the company",description = "Retrieves a list of all clients associated with the company. The response includes client details such as name, email, and status.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved list of clients")
     @GetMapping("/clients")
     public List<TenantClientResponse> getClients(
             @AuthenticationPrincipal Jwt jwt) {
 
         return service.listClients(jwt);
     }
-
+    @Operation(summary = "Create/Onboard a new client",description = "Creates a new client for the company. The request body must contain the necessary information for client creation, such as name, email, and other relevant details.")
+    @ApiResponse(responseCode = "201", description = "Client created successfully")
     @PostMapping("/clients")
     @ResponseStatus(HttpStatus.CREATED)
     public TenantClientResponse createClient(
@@ -57,7 +62,8 @@ public class TenantWorkspaceController {
 
         return service.createClient(jwt, request);
     }
-
+    @Operation(summary = "Update a client details",description = "Updates the details of an existing client. The request body must contain the updated information for the client, such as name, email, and other relevant details.")
+    @ApiResponse(responseCode = "200", description = "Client updated successfully")
     @PutMapping("/clients/{clientId}")
     public TenantClientResponse updateClient(
             @AuthenticationPrincipal Jwt jwt,

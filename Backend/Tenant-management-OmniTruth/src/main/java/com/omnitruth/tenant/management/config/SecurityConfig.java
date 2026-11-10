@@ -297,7 +297,7 @@ public class SecurityConfig {
                         .ifPresent(authorities::add);
             }
 
-            // TEMPORARY JWT DEBUG
+
             System.out.println("========== JWT AUTHORIZATION DEBUG ==========");
             System.out.println("JWT issuer: " + jwt.getIssuer());
             System.out.println("JWT audience: " + jwt.getAudience());

@@ -37,6 +37,8 @@ export interface TenantDashboard {
 }
 
 export interface TenantClient {
+  tenantClientType: TenantClientType;
+  userType: ClientUserRole;
   clientId: string;
   clientName: string;
   contactEmail: string | null;
@@ -47,12 +49,26 @@ export interface TenantClient {
   updatedAt: string;
 }
 
+export type TenantClientType =
+| 'INTERNAL_EMPLOYEE'
+| 'EXTERNAL_COMPANY'
+| 'INDIVIDUAL_CLIENT'
+| 'BUSINESS_PARTNER'
+
+export type ClientUserRole =
+| 'CLIENT_ADMIN'
+| 'CLIENT_USER'
+| 'CLIENT_VIEWER'
+| 'CLIENT_OPERATOR'
+
 export interface TenantClientRequest {
   clientName: string;
   contactEmail?: string;
   externalReference?: string;
   notes?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status?: string;
+  tenantClientType: TenantClientType;
+  appRole: ClientUserRole;
 }
 
 export interface TenantApiEndpoint {

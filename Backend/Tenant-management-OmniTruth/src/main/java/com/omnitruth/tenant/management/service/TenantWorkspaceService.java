@@ -1,8 +1,11 @@
 package com.omnitruth.tenant.management.service;
 
+import com.omnitruth.tenant.management.config.TenantClientProducer;
+import com.omnitruth.tenant.management.config.UserCreationKafkaProducerConfig;
 import com.omnitruth.tenant.management.domain.*;
 import com.omnitruth.tenant.management.repository.*;
 import com.omnitruth.tenant.management.web.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,7 @@ import com.omnitruth.tenant.management.repository.TenantRepository;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 @Service
+@Slf4j
 @Transactional
 public class TenantWorkspaceService {
     private final TenantContextService tenantContext;
@@ -23,18 +27,21 @@ public class TenantWorkspaceService {
     private final TenantApiEndpointRepository endpoints;
     private final TenantToolDefinitionRepository tools;
     private final TenantRepository tenants;
+    private  TenantClientProducer tenantClientProducer;
     public TenantWorkspaceService(
             TenantContextService tenantContext,
             TenantClientRepository clients,
             TenantApiEndpointRepository endpoints,
             TenantToolDefinitionRepository tools,
-            TenantRepository tenants) {
+            TenantRepository tenants,
+            TenantClientProducer tenantClientProducer) {
 
         this.tenantContext = tenantContext;
         this.clients = clients;
         this.endpoints = endpoints;
         this.tools = tools;
         this.tenants = tenants;
+        this.tenantClientProducer=tenantClientProducer;
     }
 
     @Transactional(readOnly = true)
@@ -68,7 +75,22 @@ public class TenantWorkspaceService {
         entity.setTenantId(tenantId);
         entity.setCreatedAt(Instant.now());
         applyClient(entity, request);
-        return toResponse(clients.save(entity));
+        entity.setTenantClientType(request.getTenantClientType());
+        entity.setAppRole(request.getAppRole());
+        TenantClient tenantClient=clients.save(entity);
+        //Kafka event
+        try{
+            tenantClientProducer.publish(tenantClient);
+
+        }catch (Exception e){
+            log.error(
+                    "Tenant client created, but invitation event publishing failed. Client ID: {}",
+                    tenantClient.getClientId(),
+                    e
+            );
+        }
+
+        return toResponse(tenantClient);
     }
 
     public TenantClientResponse updateClient(org.springframework.security.oauth2.jwt.Jwt jwt, UUID id, TenantClientRequest request) {
@@ -80,16 +102,18 @@ public class TenantWorkspaceService {
     }
 
     private void applyClient(TenantClient entity, TenantClientRequest request) {
-        String status = request.status().trim().toUpperCase(Locale.ROOT);
+        String status = request.getStatus().trim().toUpperCase(Locale.ROOT);
         if (!List.of("ACTIVE", "INACTIVE").contains(status)) {
             throw new IllegalArgumentException("Client status must be ACTIVE or INACTIVE.");
         }
-        entity.setClientName(request.clientName().trim());
-        entity.setContactEmail(blankToNull(request.contactEmail()));
-        entity.setExternalReference(blankToNull(request.externalReference()));
-        entity.setNotes(blankToNull(request.notes()));
+        entity.setClientName(request.getClientName().trim());
+        entity.setContactEmail(blankToNull(request.getContactEmail()));
+        entity.setExternalReference(blankToNull(request.getExternalReference()));
+        entity.setNotes(blankToNull(request.getNotes()));
         entity.setStatus(status);
         entity.setUpdatedAt(Instant.now());
+        entity.setTenantClientType(request.getTenantClientType());
+        entity.setAppRole(request.getAppRole());
     }
 
     @Transactional(readOnly = true)

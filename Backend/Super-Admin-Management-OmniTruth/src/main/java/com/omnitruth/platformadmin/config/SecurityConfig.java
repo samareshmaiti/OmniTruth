@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import com.omnitruth.platformadmin.tenant.repository.PlatformAdminIdentityRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +43,12 @@ public class SecurityConfig {
     @Value("${omnitruth.security.platform-tenant-id}")
     private String platformTenantId;
 
+    private final PlatformAdminIdentityRepository platformAdminIdentityRepository;
+
+    public SecurityConfig(PlatformAdminIdentityRepository platformAdminIdentityRepository) {
+        this.platformAdminIdentityRepository = platformAdminIdentityRepository;
+    }
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -58,8 +65,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+            HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
@@ -128,39 +134,48 @@ public class SecurityConfig {
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter(JdbcTemplate jdbcTemplate) {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> platformAuthorities(jwt, jdbcTemplate));
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> platformAuthorities(jwt));
         return converter;
     }
 
-    private Collection<GrantedAuthority> platformAuthorities(Jwt jwt, JdbcTemplate jdbcTemplate) {
+    private Collection<GrantedAuthority> platformAuthorities(Jwt jwt) {
+
         List<GrantedAuthority> authorities = new ArrayList<>();
         String tenantId = jwt.getClaimAsString("tid");
 
-        // Organizational OmniTruth administrators retain the existing Entra app-role path.
+        // Organizational OmniTruth administrators
         if (platformTenantId.equalsIgnoreCase(tenantId)) {
             List<String> roles = jwt.getClaimAsStringList("roles");
+
             if (roles != null && roles.stream().anyMatch(role ->
                     "PLATFORM_SUPER_ADMIN".equals(role)
                             || "PLATFORM_SUPER_ADMIN_USER".equals(role))) {
-                authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"));
+
+                authorities.add(
+                        new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"));
             }
         }
 
-        // Consumer accounts have no Entra app roles. Grant only an explicitly provisioned identity.
+        // Consumer accounts
         if (CONSUMER_TENANT_ID.equalsIgnoreCase(tenantId)) {
+
             String issuer = jwt.getClaimAsString("iss");
             String subject = jwt.getSubject();
+
             if (issuer != null && subject != null) {
-                Boolean registered = jdbcTemplate.queryForObject(
-                        "SELECT EXISTS (SELECT 1 FROM platform_admin_identities " +
-                                "WHERE issuer = ? AND subject = ? AND tenant_id = ? " +
-                                "AND app_role = 'PLATFORM_SUPER_ADMIN' AND active = TRUE)",
-                        Boolean.class,
-                        issuer,
-                        subject,
-                        UUID.fromString(CONSUMER_TENANT_ID));
-                if (Boolean.TRUE.equals(registered)) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"));
+
+                boolean registered =
+                        platformAdminIdentityRepository
+                                .existsByIssuerAndSubjectAndTenantIdAndAppRoleAndActiveTrue(
+                                        issuer,
+                                        subject,
+                                        UUID.fromString(CONSUMER_TENANT_ID),
+                                        "PLATFORM_SUPER_ADMIN"
+                                );
+
+                if (registered) {
+                    authorities.add(
+                            new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"));
                 }
             }
         }

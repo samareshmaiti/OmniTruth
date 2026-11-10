@@ -45,28 +45,17 @@ public class PlatformOnboardingService {
      * Validates the tenant and asynchronously requests a Company Admin invitation.
      */
     @Transactional(readOnly = true)
-    public InvitationAcceptedResponse inviteFirstCompanyAdmin(
-            UUID tenantId,
-            String email,
-            String actorSubject) {
+    public InvitationAcceptedResponse inviteFirstCompanyAdmin(UUID tenantId, String email, String actorSubject) {
 
         var tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Tenant not found: " + tenantId
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + tenantId ));
 
         if (tenant.getStatus() != TenantStatus.SSO_CONFIGURING) {
-            throw new ConflictException(
-                    "The first Company Admin can be invited only while "
-                            + "tenant SSO is being configured"
-            );
+            throw new ConflictException("The first Company Admin can be invited only while " + "tenant SSO is being configured");
         }
 
 
         UUID eventId = UUID.randomUUID();
-
         CompanyAdminInvitationRequestedEvent event =
                 new CompanyAdminInvitationRequestedEvent(
                         eventId,
@@ -80,29 +69,15 @@ public class PlatformOnboardingService {
                         Instant.now()
                 );
 
-        CompletableFuture<?> publishResult =
-                kafkaTemplate.send(
-                        invitationTopic,
-                        tenantId.toString(),
-                        event
-                );
+        CompletableFuture<?> publishResult = kafkaTemplate.send(invitationTopic, tenantId.toString(), event);
 
         publishResult.whenComplete((result, exception) -> {
             if (exception != null) {
-                log.error(
-                        "Failed to publish Company Admin invitation event. "
-                                + "Event ID: {}, Tenant ID: {}",
-                        eventId,
-                        tenantId,
-                        exception
-                );
+                log.error("Failed to publish Company Admin invitation event. " + "Event ID: {}, Tenant ID: {}",
+                        eventId, tenantId, exception );
             } else {
-                log.info(
-                        "Company Admin invitation event published. "
-                                + "Event ID: {}, Tenant ID: {}",
-                        eventId,
-                        tenantId
-                );
+                log.info("Company Admin invitation event published. " + "Event ID: {}, Tenant ID: {}",
+                        eventId, tenantId );
             }
         });
 
